@@ -14,11 +14,11 @@ import { useAuth } from '@/lib/auth-provider';
 import { WashingMachine } from 'lucide-react';
 
 const loginSchema = z.object({
-  phone: z.string().min(10, { message: 'Phone number must be at least 10 digits' }),
+  phone: z.string().min(10, { message: 'شماره تلفن باید حداقل 10 رقم باشد' }),
 });
 
 const verifySchema = z.object({
-  code: z.string().length(0, { message: 'Verification code must be 5 digits' }),
+  code: z.string().length(5, { message: 'کد تایید باید 5 رقم باشد' }),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -28,7 +28,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<'phone' | 'verify'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const { login } = useAuth();
+  const { sendCode, login } = useAuth();
 
   const phoneForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -47,20 +47,15 @@ export default function LoginPage() {
   const onSubmitPhone = async (values: LoginFormValues) => {
     try {
       setIsSubmitting(true);
-      // In a real implementation, this would call an API to send a verification code
-      // For now, we'll just simulate this and move to the next step
-      await fetch('/api/auth/send-code', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ phone: values.phone }),
-      });
-      
+
+      await sendCode(values.phone);
+
       setPhoneNumber(values.phone);
+
+      verifyForm.reset();
       setStep('verify');
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('خطای ورود:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -71,10 +66,14 @@ export default function LoginPage() {
       setIsSubmitting(true);
       await login(phoneNumber, values.code);
     } catch (error) {
-      console.error('Verification error:', error);
+      console.error('خطای تایید:', error);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleOTPChange = (value: string) => {
+    verifyForm.setValue('code', value, { shouldValidate: true });
   };
 
   return (
@@ -84,11 +83,11 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
             <WashingMachine className="h-12 w-12 text-blue-600 dark:text-blue-400" />
           </div>
-          <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
+          <CardTitle className="text-2xl text-center">خوش آمدید</CardTitle>
           <CardDescription className="text-center">
             {step === 'phone'
-              ? 'Enter your phone number to sign in to your account'
-              : 'Enter the verification code sent to your phone'}
+              ? 'شماره تلفن خود را برای ورود به حساب کاربری وارد کنید'
+              : 'کد تایید ارسال شده به تلفن همراه خود را وارد کنید'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -100,7 +99,7 @@ export default function LoginPage() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
+                      <FormLabel>شماره تلفن</FormLabel>
                       <FormControl>
                         <Input placeholder="09123456789" {...field} />
                       </FormControl>
@@ -108,13 +107,13 @@ export default function LoginPage() {
                     </FormItem>
                   )}
                 />
-                
-                <Button 
-                  type="submit" 
-                  className="w-full" 
+
+                <Button
+                  type="submit"
+                  className="w-full"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? 'Sending code...' : 'Continue'}
+                  {isSubmitting ? 'در حال ارسال کد...' : 'ادامه'}
                 </Button>
               </form>
             </Form>
@@ -124,17 +123,22 @@ export default function LoginPage() {
                 <FormField
                   control={verifyForm.control}
                   name="code"
-                  render={({ field }) => (
+                  render={() => (
                     <FormItem className="mx-auto text-center">
-                      <FormLabel>Verification Code</FormLabel>
+                      <FormLabel>کد تایید</FormLabel>
                       <FormControl>
-                        <InputOTP maxLength={5} {...field}>
-                          <InputOTPGroup>
-                            <InputOTPSlot index={0} />
-                            <InputOTPSlot index={1} />
-                            <InputOTPSlot index={2} />
-                            <InputOTPSlot index={3} />
-                            <InputOTPSlot index={4} />
+                        <InputOTP
+                          maxLength={5}
+                          value={verifyForm.watch('code')}
+                          onChange={handleOTPChange}
+                          containerClassName="justify-center"
+                        >
+                          <InputOTPGroup className="gap-4 justify-between">
+                            <InputOTPSlot className='dark:bg-white dark:text-black' index={4} />
+                            <InputOTPSlot className='dark:bg-white dark:text-black' index={3} />
+                            <InputOTPSlot className='dark:bg-white dark:text-black' index={2} />
+                            <InputOTPSlot className='dark:bg-white dark:text-black' index={1} />
+                            <InputOTPSlot className='dark:bg-white dark:text-black' index={0} />
                           </InputOTPGroup>
                         </InputOTP>
                       </FormControl>
@@ -142,22 +146,26 @@ export default function LoginPage() {
                     </FormItem>
                   )}
                 />
-                
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isSubmitting}
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting || verifyForm.watch('code').length !== 5}
                 >
-                  {isSubmitting ? 'Verifying...' : 'Login'}
+                  {isSubmitting ? 'در حال تایید...' : 'ورود'}
                 </Button>
-                
+
                 <div className="text-center">
-                  <Button 
-                    variant="link" 
-                    onClick={() => setStep('phone')} 
+                  <Button
+                    variant="link"
+                    onClick={() => {
+                      phoneForm.reset();
+                      verifyForm.reset();
+                      setStep('phone');
+                    }}
                     className="p-0 h-auto"
                   >
-                    Use a different phone number
+                    استفاده از شماره تلفن دیگر
                   </Button>
                 </div>
               </form>
@@ -166,9 +174,9 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex justify-center">
           <p className="text-sm text-muted-foreground">
-            Don't have an account?{' '}
+            حساب کاربری ندارید؟{' '}
             <Link href="/auth/register" className="text-blue-600 hover:underline">
-              Register
+              ثبت نام
             </Link>
           </p>
         </CardFooter>

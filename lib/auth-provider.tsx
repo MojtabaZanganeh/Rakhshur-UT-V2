@@ -5,11 +5,14 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { User } from '@/types/user';
 import { verifyToken } from '@/lib/auth-utils';
+import { safeJsonFetch } from './config';
+import { userLogin } from './api';
 
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  sendCode: (phone: string) => Promise<void>;
   login: (phone: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (userData: Omit<User, 'id' | 'role'>) => Promise<void>;
@@ -42,34 +45,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const login = async (phone: string, code: string) => {
+  const sendCode = async (phone: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/auth/login', {
+
+      const response = await fetch('/api/auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phone, code }),
+        body: JSON.stringify({ action: 'sendCode', phone }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Login failed');
+        throw new Error(data.error || 'ارسال کد با خطا مواجه شد');
       }
 
-      const userData = await response.json();
-      setUser(userData.user);
-
-      if (userData.user.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/dashboard');
-      }
-
-      toast.success('Login successful');
+      toast.success('کد تایید ارسال شد');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Login failed');
+      toast.error(error instanceof Error ? error.message : 'ارسال کد با خطا مواجه شد');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (phone: string, code: string) => {
+    try {
+      setIsLoading(true);
+
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'login', phone, code }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'ورود با خطا مواجه شد');
+      }
+
+      setUser(data.user);
+
+      if (data.user.role === 'user') {
+        router.push('/dashboard');
+      } else {
+        router.push('/admin');
+      }
+
+      toast.success('ورود موفقیت‌آمیز بود');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'ورود با خطا مواجه شد');
       throw error;
     } finally {
       setIsLoading(false);
@@ -150,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         isAuthenticated,
+        sendCode,
         login,
         logout,
         register,
