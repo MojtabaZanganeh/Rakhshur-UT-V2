@@ -40,9 +40,9 @@ export function getRoleName(role: string): string {
   switch (role) {
     case "admin":
       return "مدیر کل";
-    case "admin-dorm1":
+    case "admin-dormitory-1":
       return "مدیر خوابگاه ۱";
-    case "admin-dorm2":
+    case "admin-dormitory-2":
       return "مدیر خوابگاه ۲";
     case "user":
       return "کاربر";

@@ -1,5 +1,5 @@
 export type Dormitory = 'dormitory-1' | 'dormitory-2';
-export type UserRole = 'user' | 'admin' | 'admin-dorm1' | 'admin-dorm2';
+export type UserRole = 'user' | 'admin' | 'admin-dormitory-1' | 'admin-dormitory-2';
 
 export type userRegister = {
   first_name: string;

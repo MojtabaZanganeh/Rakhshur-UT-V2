@@ -186,7 +186,7 @@ export default function AdminDashboard() {
         <Link href="/admin/timeslots/new">
           <Button>
             <PlusCircle className="ml-2 h-4 w-4" />
-            افزودن بازه زمانی
+            افزودن نوبت جدید
           </Button>
         </Link>
       </div>

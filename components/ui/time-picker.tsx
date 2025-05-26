@@ -94,7 +94,7 @@ export const TimePicker = ({ value, onChange, label, className = "" }: TimePicke
   useEffect(() => {
     if (isOpen && pickerRef.current && popupRef.current) {
       const pickerRect = pickerRef.current.getBoundingClientRect();
-      const popupHeight = popupRef.current.offsetHeight || 200; // ارتفاع حدودی
+      const popupHeight = popupRef.current.offsetHeight || 200;
       const spaceBelow = window.innerHeight - pickerRect.bottom;
       const spaceAbove = pickerRect.top;
 

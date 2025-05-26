@@ -200,13 +200,7 @@ export default function AddTimeSlotPage() {
 
     } catch (error) {
 
-      const errorText = error instanceof Error && error.message ? error.message : 'خطای نامشخص در ذخیره اطلاعات';
-
-      toast.error(errorText);
-
-      setErrors({
-        submit: errorText
-      });
+      toast.error(error instanceof Error && error.message ? error.message : 'خطای نامشخص در ذخیره اطلاعات');
 
     } finally {
       setIsSubmitting(false);
