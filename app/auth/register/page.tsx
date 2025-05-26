@@ -10,43 +10,90 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useAuth } from '@/lib/auth-provider';
 import { WashingMachine } from 'lucide-react';
 
 const registerSchema = z.object({
-  firstName: z.string().min(2, { message: 'First name must be at least 2 characters' }),
-  lastName: z.string().min(2, { message: 'Last name must be at least 2 characters' }),
-  phone: z.string().min(10, { message: 'Phone number must be at least 10 digits' }),
-  studentId: z.string().min(5, { message: 'Student ID must be at least 5 characters' }),
+  first_name: z.string().min(2, { message: 'نام باید حداقل 2 کاراکتر باشد' }),
+  last_name: z.string().min(2, { message: 'نام خانوادگی باید حداقل 2 کاراکتر باشد' }),
+  phone: z.string().min(10, { message: 'شماره تلفن باید حداقل 10 رقم باشد' }),
+  student_id: z.string().min(5, { message: 'شماره دانشجویی باید حداقل 5 کاراکتر باشد' }),
   dormitory: z.enum(['dormitory-1', 'dormitory-2']),
 });
 
+const verifySchema = z.object({
+  code: z.string().length(5, { message: 'کد تایید باید 5 رقم باشد' }),
+});
+
 type RegisterFormValues = z.infer<typeof registerSchema>;
+type VerifyFormValues = z.infer<typeof verifySchema>;
 
 export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { register } = useAuth();
+  const [step, setStep] = useState<'register' | 'verify'>('register');
+  const [userData, setUserData] = useState<RegisterFormValues | null>(null);
+  const { register, sendCode, checkCode } = useAuth();
 
-  const form = useForm<RegisterFormValues>({
+  const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
+      first_name: '',
+      last_name: '',
       phone: '',
-      studentId: '',
+      student_id: '',
       dormitory: 'dormitory-1',
     },
   });
 
-  const onSubmit = async (values: RegisterFormValues) => {
+  const verifyForm = useForm<VerifyFormValues>({
+    resolver: zodResolver(verifySchema),
+    defaultValues: {
+      code: '',
+    },
+  });
+
+  const onSubmitRegister = async (values: RegisterFormValues) => {
     try {
       setIsSubmitting(true);
-      await register(values);
+
+      const response = await sendCode(values.phone);
+
+      if (response) {
+        setUserData(values);
+  
+        verifyForm.reset();
+        setStep('verify');
+      }
+
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('خطای ثبت‌نام:', error);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const onSubmitVerify = async (values: VerifyFormValues) => {
+    if (!userData) return;
+
+    try {
+      setIsSubmitting(true);
+
+      const response = await checkCode(userData.phone, values.code);
+      if (response) {
+        await register(userData);
+      } else {
+        throw new Error('کد اشتباه است');
+      }
+    } catch (error) {
+      console.error('خطای تایید:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOTPChange = (value: string) => {
+    verifyForm.setValue('code', value, { shouldValidate: true });
   };
 
   return (
@@ -56,111 +103,168 @@ export default function RegisterPage() {
           <div className="flex justify-center mb-4">
             <WashingMachine className="h-12 w-12 text-blue-600 dark:text-blue-400" />
           </div>
-          <CardTitle className="text-2xl text-center">Create an account</CardTitle>
+          <CardTitle className="text-2xl text-center">ایجاد حساب کاربری</CardTitle>
           <CardDescription className="text-center">
-            Enter your information to create your account
+            {step === 'register'
+              ? 'اطلاعات خود را برای ایجاد حساب کاربری وارد کنید'
+              : 'کد تأیید ارسال شده به تلفن همراه خود را وارد کنید'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+          {step === 'register' ? (
+            <Form {...registerForm}>
+              <form onSubmit={registerForm.handleSubmit(onSubmitRegister)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={registerForm.control}
+                    name="first_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>نام</FormLabel>
+                        <FormControl>
+                          <Input placeholder="علی" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={registerForm.control}
+                    name="last_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>نام خانوادگی</FormLabel>
+                        <FormControl>
+                          <Input placeholder="محمدی" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
-                  control={form.control}
-                  name="firstName"
+                  control={registerForm.control}
+                  name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>First Name</FormLabel>
+                      <FormLabel>شماره تلفن</FormLabel>
                       <FormControl>
-                        <Input placeholder="John" {...field} />
+                        <Input placeholder="09123456789" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
                 <FormField
-                  control={form.control}
-                  name="lastName"
+                  control={registerForm.control}
+                  name="student_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Last Name</FormLabel>
+                      <FormLabel>شماره دانشجویی</FormLabel>
                       <FormControl>
-                        <Input placeholder="Doe" {...field} />
+                        <Input placeholder="12345678" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="09123456789" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="studentId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Student ID</FormLabel>
-                    <FormControl>
-                      <Input placeholder="12345678" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="dormitory"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dormitory</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
+
+                <FormField
+                  control={registerForm.control}
+                  name="dormitory"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>خوابگاه</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="انتخاب خوابگاه" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="dormitory-1">خوابگاه 1</SelectItem>
+                          <SelectItem value="dormitory-2">خوابگاه 2</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'در حال ارسال کد...' : 'ادامه'}
+                </Button>
+              </form>
+            </Form>
+          ) : (
+            <Form {...verifyForm}>
+              <form onSubmit={verifyForm.handleSubmit(onSubmitVerify)} className="space-y-4">
+                <FormField
+                  control={verifyForm.control}
+                  name="code"
+                  render={() => (
+                    <FormItem className="mx-auto text-center">
+                      <FormLabel>کد تأیید</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select dormitory" />
-                        </SelectTrigger>
+                        <InputOTP
+                          maxLength={5}
+                          value={verifyForm.watch('code')}
+                          onChange={handleOTPChange}
+                          containerClassName="justify-center"
+                        >
+                          <InputOTPGroup className="gap-4 justify-between">
+                            <InputOTPSlot className='dark:bg-white dark:text-black' index={4} />
+                            <InputOTPSlot className='dark:bg-white dark:text-black' index={3} />
+                            <InputOTPSlot className='dark:bg-white dark:text-black' index={2} />
+                            <InputOTPSlot className='dark:bg-white dark:text-black' index={1} />
+                            <InputOTPSlot className='dark:bg-white dark:text-black' index={0} />
+                          </InputOTPGroup>
+                        </InputOTP>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="dormitory-1">Dormitory 1</SelectItem>
-                        <SelectItem value="dormitory-2">Dormitory 2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Registering...' : 'Register'}
-              </Button>
-            </form>
-          </Form>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting || verifyForm.watch('code').length !== 5}
+                >
+                  {isSubmitting ? 'در حال تأیید...' : 'تکمیل ثبت‌نام'}
+                </Button>
+
+                <div className="text-center">
+                  <Button
+                    variant="link"
+                    onClick={() => {
+                      registerForm.reset();
+                      verifyForm.reset();
+                      setStep('register');
+                    }}
+                    className="p-0 h-auto"
+                  >
+                    بازگشت به فرم ثبت‌نام
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          )}
         </CardContent>
         <CardFooter className="flex justify-center">
           <p className="text-sm text-muted-foreground">
-            Already have an account?{' '}
+            قبلاً ثبت‌نام کرده‌اید؟{' '}
             <Link href="/auth/login" className="text-blue-600 hover:underline">
-              Login
+              ورود
             </Link>
           </p>
         </CardFooter>

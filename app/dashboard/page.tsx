@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { redirect } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,17 +16,22 @@ const statusStyles = {
   waiting: {
     color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
     icon: <Clock className="h-4 w-4 mr-1" />,
-    label: 'Waiting'
+    label: 'در انتظار'
   },
   washing: {
     color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
     icon: <Calendar className="h-4 w-4 mr-1" />,
-    label: 'Washing'
+    label: 'در حال شستشو'
   },
   ready: {
     color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
     icon: <CheckCircle2 className="h-4 w-4 mr-1" />,
-    label: 'Ready for pickup'
+    label: 'آماده تحویل'
+  },
+  finished: {
+    color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+    icon: <CheckCircle2 className="h-4 w-4 mr-1" />,
+    label: 'تحویل داده شده'
   },
 };
 
@@ -51,7 +57,7 @@ export default function Dashboard() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat('fa-IR', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
@@ -64,15 +70,15 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">داشبورد</h1>
           <p className="text-muted-foreground">
-            Welcome back, {user?.firstName} {user?.lastName}
+            خوش آمدید، {user?.first_name} {user?.last_name}
           </p>
         </div>
         <Link href="/reservations/new">
           <Button>
-            <Calendar className="mr-2 h-4 w-4" />
-            New Reservation
+            <Calendar className="ml-2 h-4 w-4" />
+            رزرو جدید
           </Button>
         </Link>
       </div>
@@ -80,7 +86,7 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Reservations</CardTitle>
+            <CardTitle className="text-sm font-medium">کل رزروها</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -93,7 +99,7 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Reservations</CardTitle>
+            <CardTitle className="text-sm font-medium">رزروهای در انتظار</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -108,7 +114,7 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ready for Pickup</CardTitle>
+            <CardTitle className="text-sm font-medium">آماده تحویل</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -124,7 +130,7 @@ export default function Dashboard() {
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold mb-4">Recent Reservations</h2>
+        <h2 className="text-xl font-semibold mb-4">رزروهای اخیر</h2>
         {isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-[100px] w-full" />
@@ -141,10 +147,10 @@ export default function Dashboard() {
                     <div className="flex flex-col sm:flex-row justify-between gap-4">
                       <div>
                         <div className="font-medium">
-                          Reservation #{reservation.id.substring(0, 8)}
+                          رزرو #{reservation.id.substring(0, 8)}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {reservation.timeSlots.length} slot(s) • Created on {formatDate(reservation.createdAt)}
+                          {reservation.timeSlots.length} بازه زمانی • ایجاد شده در {formatDate(reservation.createdAt)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -155,7 +161,7 @@ export default function Dashboard() {
                           </div>
                         </Badge>
                         <Link href={`/reservations/${reservation.id}`}>
-                          <Button variant="ghost" size="sm">View details</Button>
+                          <Button variant="ghost" size="sm">مشاهده جزئیات</Button>
                         </Link>
                       </div>
                     </div>
@@ -166,7 +172,7 @@ export default function Dashboard() {
             {reservations.length > 5 && (
               <div className="text-center mt-4">
                 <Link href="/reservations">
-                  <Button variant="outline">View All Reservations</Button>
+                  <Button variant="outline">مشاهده همه رزروها</Button>
                 </Link>
               </div>
             )}
@@ -175,12 +181,12 @@ export default function Dashboard() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center p-6">
               <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-              <CardTitle className="text-xl mb-2">No reservations yet</CardTitle>
+              <CardTitle className="text-xl mb-2">هنوز رزروی ندارید</CardTitle>
               <CardDescription className="text-center mb-4">
-                You haven't made any laundry reservations yet. Create your first reservation to get started.
+                شما هنوز هیچ رزرو لباسشویی انجام نداده‌اید. برای شروع، اولین رزرو خود را ایجاد کنید.
               </CardDescription>
               <Link href="/reservations/new">
-                <Button>Create Reservation</Button>
+                <Button>ایجاد رزرو</Button>
               </Link>
             </CardContent>
           </Card>

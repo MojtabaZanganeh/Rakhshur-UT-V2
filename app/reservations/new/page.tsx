@@ -70,7 +70,9 @@ export default function NewReservationPage() {
       try {
         setIsLoading(true);
         const data = await fetchTimeSlots(selectedDormitory);
-        setTimeSlots(data.timeSlots);
+        // if (data) {
+        //   setTimeSlots(data.timeSlots);
+        // }
       } catch (error) {
         console.error('Error loading time slots:', error);
         toast.error('Failed to load available time slots');

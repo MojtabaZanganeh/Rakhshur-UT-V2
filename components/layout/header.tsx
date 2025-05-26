@@ -95,7 +95,7 @@ export function Header({ variant = 'user' }: HeaderProps) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>
-                      {user?.firstName} {user?.lastName}
+                      {user?.first_name} {user?.last_name}
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>

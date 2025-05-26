@@ -28,7 +28,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<'phone' | 'verify'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const { sendCode, login } = useAuth();
+  const { login, sendCode } = useAuth();
 
   const phoneForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -48,12 +48,15 @@ export default function LoginPage() {
     try {
       setIsSubmitting(true);
 
-      await sendCode(values.phone);
+      const response = await sendCode(values.phone);
 
-      setPhoneNumber(values.phone);
+      if (response) {
+        setPhoneNumber(values.phone);
+        
+        verifyForm.reset();
+        setStep('verify');
+      }
 
-      verifyForm.reset();
-      setStep('verify');
     } catch (error) {
       console.error('خطای ورود:', error);
     } finally {
@@ -134,11 +137,11 @@ export default function LoginPage() {
                           containerClassName="justify-center"
                         >
                           <InputOTPGroup className="gap-4 justify-between">
-                            <InputOTPSlot className='dark:bg-white dark:text-black' index={4} />
-                            <InputOTPSlot className='dark:bg-white dark:text-black' index={3} />
-                            <InputOTPSlot className='dark:bg-white dark:text-black' index={2} />
-                            <InputOTPSlot className='dark:bg-white dark:text-black' index={1} />
-                            <InputOTPSlot className='dark:bg-white dark:text-black' index={0} />
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={3} />
+                            <InputOTPSlot index={2} />
+                            <InputOTPSlot index={1} />
+                            <InputOTPSlot index={0} />
                           </InputOTPGroup>
                         </InputOTP>
                       </FormControl>

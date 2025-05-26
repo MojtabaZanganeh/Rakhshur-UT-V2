@@ -1,241 +1,689 @@
-"use client";
+'use client'
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { CalendarIcon, ArrowLeft } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { addTimeSlot } from '@/lib/api';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import Link from 'next/link';
-
-const timeSlotSchema = z.object({
-  date: z.date(),
-  startTime: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, {
-    message: "Start time must be in HH:MM format",
-  }),
-  endTime: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, {
-    message: "End time must be in HH:MM format",
-  }),
-  dormitory: z.enum(['dormitory-1', 'dormitory-2']),
-});
-
-type TimeSlotFormValues = z.infer<typeof timeSlotSchema>;
+import { useState, useEffect } from 'react';
+import { Label } from '@/components/ui/label';
+import { Plus, Trash2, Save, Check, X, Users, ArrowRight, Clock, CalendarDays, ClipboardCheck, AlertCircle, ListChecks, ArrowLeft } from 'lucide-react';
+import JalaliDatePicker from '@/components/ui/date-picker';
+import { TimePicker } from '@/components/ui/time-picker';
+import { TimeSlot, ValidationErrors } from '@/types/reservation';
+import toast from 'react-hot-toast';
 
 export default function AddTimeSlotPage() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedFromDate, setSelectedFromDate] = useState('');
+  const [selectedToDate, setSelectedToDate] = useState('');
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [selectedSpecificDate, setSelectedSpecificDate] = useState('');
+  const [startTime, setStartTime] = useState(new Date(2025, 0, 1, 14, 0));
+  const [endTime, setEndTime] = useState(new Date(2025, 0, 1, 18, 0));
+  const [defaultCapacity, setDefaultCapacity] = useState(1);
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [isWeeklyMode, setIsWeeklyMode] = useState(true);
+  const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const router = useRouter();
 
-  const form = useForm<TimeSlotFormValues>({
-    resolver: zodResolver(timeSlotSchema),
-    defaultValues: {
-      date: new Date(),
-      startTime: '',
-      endTime: '',
-      dormitory: 'dormitory-1',
-    },
-  });
+  const weekDays = [
+    { key: 'saturday', label: 'شنبه' },
+    { key: 'sunday', label: 'یکشنبه' },
+    { key: 'monday', label: 'دوشنبه' },
+    { key: 'tuesday', label: 'سه‌شنبه' },
+    { key: 'wednesday', label: 'چهارشنبه' },
+    { key: 'thursday', label: 'پنج‌شنبه' },
+    { key: 'friday', label: 'جمعه' }
+  ];
 
-  const onSubmit = async (values: TimeSlotFormValues) => {
-    try {
-      setIsSubmitting(true);
-      
-      // Combine date and time into ISO strings
-      const { date, startTime, endTime, dormitory } = values;
-      const [startHour, startMinute] = startTime.split(':').map(Number);
-      const [endHour, endMinute] = endTime.split(':').map(Number);
-      
-      const startDate = new Date(date);
-      startDate.setHours(startHour, startMinute, 0, 0);
-      
-      const endDate = new Date(date);
-      endDate.setHours(endHour, endMinute, 0, 0);
-      
-      // Validate that end time is after start time
-      if (endDate <= startDate) {
-        form.setError('endTime', {
-          type: 'manual',
-          message: 'End time must be after start time',
-        });
-        return;
-      }
-      
-      // Check if duration is 30 minutes
-      const durationMs = endDate.getTime() - startDate.getTime();
-      const durationMinutes = durationMs / (1000 * 60);
-      
-      if (durationMinutes !== 30) {
-        toast.error('Time slot must be exactly 30 minutes');
-        return;
-      }
-      
-      await addTimeSlot({
-        startTime: startDate.toISOString(),
-        endTime: endDate.toISOString(),
-        dormitory,
-        isAvailable: true,
+  const validateTimeRange = (): boolean => {
+    const newErrors: ValidationErrors = {};
+    const startMinutes = startTime.getHours() * 60 + startTime.getMinutes();
+    const endMinutes = endTime.getHours() * 60 + endTime.getMinutes();
+    const difference = endMinutes - startMinutes;
+
+    if (difference <= 0) {
+      newErrors.endTime = 'زمان پایان باید بعد از زمان شروع باشد';
+    } else if (difference < 30) {
+      newErrors.endTime = 'حداقل فاصله زمانی ۳۰ دقیقه باید باشد';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateCustomSlot = (startTime: Date, endTime: Date): string | null => {
+    const startMinutes = startTime.getHours() * 60 + startTime.getMinutes();
+    const endMinutes = endTime.getHours() * 60 + endTime.getMinutes();
+    const difference = endMinutes - startMinutes;
+
+    if (difference <= 0) {
+      return 'زمان پایان باید بعد از زمان شروع باشد';
+    } else if (difference < 30) {
+      return 'حداقل فاصله زمانی ۳۰ دقیقه باید باشد';
+    }
+
+    return null;
+  };
+
+  const generateTimeSlots = () => {
+    if (!validateTimeRange()) return;
+
+    const slots: TimeSlot[] = [];
+    const start = startTime.getHours() * 60 + startTime.getMinutes();
+    const end = endTime.getHours() * 60 + endTime.getMinutes();
+
+    for (let minutes = start; minutes < end; minutes += 30) {
+      const startHour = Math.floor(minutes / 60);
+      const startMin = minutes % 60;
+      const endHour = Math.floor((minutes + 30) / 60);
+      const endMin = (minutes + 30) % 60;
+
+      const startTimeStr = `${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`;
+      const endTimeStr = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`;
+
+      slots.push({
+        id: `slot-${minutes}`,
+        startTime: startTimeStr,
+        endTime: endTimeStr,
+        isActive: true,
+        isCustom: false,
+        capacity: defaultCapacity
       });
-      
-      toast.success('Time slot added successfully');
-      router.push('/admin/timeslots');
+    }
+
+    setTimeSlots(slots);
+    setCurrentStep(3);
+  };
+
+  const toggleSlot = (id: string) => {
+    setTimeSlots(prev => prev.map(slot =>
+      slot.id === id ? { ...slot, isActive: !slot.isActive } : slot
+    ));
+  };
+
+  const deleteCustomSlot = (id: string) => {
+    setTimeSlots(prev => prev.filter(slot => slot.id !== id));
+  };
+
+  const addCustomSlot = () => {
+    const newSlot: TimeSlot = {
+      id: `custom-${Date.now()}`,
+      startTime: new Date(2025, 0, 1, 9, 0),
+      endTime: new Date(2025, 0, 1, 9, 30),
+      isActive: true,
+      isCustom: true,
+      capacity: defaultCapacity
+    }
+    setTimeSlots(prev => [...prev, newSlot]);
+  };
+
+  const updateCustomSlot = (id: string, field: 'startTime' | 'endTime' | 'capacity', value: Date | number) => {
+    setTimeSlots(prev => prev.map(slot => {
+      if (slot.id === id) {
+        const updatedSlot = { ...slot, [field]: value };
+
+        if (field === 'startTime' || field === 'endTime') {
+          const startTime = field === 'startTime' ? value as Date : slot.startTime as Date;
+          const endTime = field === 'endTime' ? value as Date : slot.endTime as Date;
+
+          const validationError = validateCustomSlot(startTime, endTime);
+          if (validationError) {
+            setErrors(prev => ({ ...prev, [`${id}-${field}`]: validationError }));
+          } else {
+            setErrors(prev => {
+              const newErrors = { ...prev };
+              delete newErrors[`${id}-startTime`];
+              delete newErrors[`${id}-endTime`];
+              return newErrors;
+            })
+          }
+        }
+
+        return updatedSlot
+      }
+      return slot
+    }));
+  };
+
+  const updateSlotCapacity = (id: string, capacity: number) => {
+    setTimeSlots(prev => prev.map(slot =>
+      slot.id === id ? { ...slot, capacity: Math.max(1, capacity) } : slot
+    ));
+  };
+
+  const formatTimeForDisplay = (time: string | Date): string => {
+    if (typeof time === 'string') return time;
+    return `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
+  };
+
+  const saveShift = async () => {
+    setIsSubmitting(true);
+
+    try {
+      const slotsData = {
+        dateRange: {
+          isWeeklyMode,
+          fromDate: selectedFromDate,
+          toDate: selectedToDate,
+          specificDate: selectedSpecificDate,
+          selectedDays: selectedDates
+        },
+        timeSlots: timeSlots
+          .filter(slot => slot.isActive)
+          .map(slot => ({
+            id: slot.id,
+            startTime: formatTimeForDisplay(slot.startTime),
+            endTime: formatTimeForDisplay(slot.endTime),
+            capacity: slot.capacity,
+            isCustom: slot.isCustom
+          })),
+        createdAt: new Date().toISOString()
+      };
+
+      const response = await fetch('/api/timeslots/new', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({slotsData}),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (response.status === 200) {
+        if (data.success) {
+          toast.success('نوبت ها با موفقیت ثبت شد');
+          setCurrentStep(5);
+        }
+      }
+      else {
+        throw new Error(data.message || 'خطا در ذخیره نوبت‌ها');
+      }
+
     } catch (error) {
-      console.error('Error adding time slot:', error);
-      toast.error('Failed to add time slot');
+
+      const errorText = error instanceof Error && error.message ? error.message : 'خطای نامشخص در ذخیره اطلاعات';
+
+      toast.error(errorText);
+
+      setErrors({
+        submit: errorText
+      });
+
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Link href="/admin/timeslots">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="sr-only">Back</span>
-          </Button>
-        </Link>
-        <h1 className="text-3xl font-bold tracking-tight">Add Time Slot</h1>
+  const StepDateSelection = () => (
+    <div className="space-y-6 text-right" dir="rtl">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+          <CalendarDays className="w-5 h-5" />
+          گام ۱: انتخاب روز
+        </h3>
+        <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 shadow-inner">
+          <button
+            onClick={() => setIsWeeklyMode(false)}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${!isWeeklyMode
+              ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+              }`}
+          >
+            تاریخ خاص
+          </button>
+          <button
+            onClick={() => setIsWeeklyMode(true)}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${isWeeklyMode
+              ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+              }`}
+          >
+            روزهای هفته
+          </button>
+        </div>
       </div>
 
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle>Create a new time slot</CardTitle>
-          <CardDescription>
-            Add a new 30-minute laundry time slot for students to reserve.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormDescription>
-                      Select the date for this time slot.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="startTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Start Time</FormLabel>
-                      <FormControl>
-                        <Input placeholder="14:30" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Enter time in 24-hour format (HH:MM)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="endTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>End Time</FormLabel>
-                      <FormControl>
-                        <Input placeholder="15:00" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Must be 30 minutes after start time
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="dormitory"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dormitory</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select dormitory" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="dormitory-1">Dormitory 1</SelectItem>
-                        <SelectItem value="dormitory-2">Dormitory 2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Select which dormitory this time slot is for.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isSubmitting}
+      {isWeeklyMode ? (
+        <div>
+          <div className="flex items-center gap-12 mb-6">
+            <JalaliDatePicker
+              selected={selectedFromDate}
+              onChange={setSelectedFromDate}
+              label="از تاریخ"
+            />
+            <JalaliDatePicker
+              selected={selectedToDate}
+              onChange={setSelectedToDate}
+              label="تا تاریخ"
+            />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {weekDays.map(day => (
+              <label
+                key={day.key}
+                className={`flex items-center justify-between p-4 border rounded-xl transition-all cursor-pointer ${selectedDates.includes(day.key)
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                  : 'border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
               >
-                {isSubmitting ? 'Adding...' : 'Add Time Slot'}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+                <span className="font-medium dark:text-gray-200">{day.label}</span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    className="absolute opacity-0"
+                    checked={selectedDates.includes(day.key)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedDates(prev => [...prev, day.key])
+                      } else {
+                        setSelectedDates(prev => prev.filter(d => d !== day.key))
+                      }
+                    }}
+                  />
+
+                  <div
+                    className={`w-5 h-5 rounded flex items-center justify-center ${selectedDates.includes(day.key)
+                      ? 'bg-blue-500'
+                      : 'border-2 border-gray-300 dark:border-gray-500'
+                      }`}
+                  >
+                    {selectedDates.includes(day.key) && (
+                      <Check className="w-3 h-3 text-white" />
+                    )}
+                  </div>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
+          <JalaliDatePicker
+            selected={selectedSpecificDate}
+            onChange={setSelectedSpecificDate}
+            label="انتخاب تاریخ"
+          />
+        </div>
+      )}
+
+      <button
+        onClick={() => setCurrentStep(2)}
+        disabled={isWeeklyMode ? selectedDates.length === 0 : !selectedSpecificDate}
+        className={`w-full py-3 rounded-xl font-medium text-white transition-all ${isWeeklyMode
+          ? selectedDates.length === 0
+            ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
+            : 'bg-blue-600 hover:bg-blue-700'
+          : !selectedSpecificDate
+            ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
+            : 'bg-blue-600 hover:bg-blue-700'
+          }`}
+      >
+        مرحله بعد
+        <ArrowLeft className="w-4 h-4 inline-block mr-2" />
+      </button>
     </div>
   );
+
+  const StepTimeRange = () => (
+    <div className="space-y-6 text-right" dir="rtl">
+      <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+        <Clock className="w-5 h-5" />
+        گام ۲: انتخاب بازه زمانی کلی
+      </h3>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <Label className="mb-2 text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2">
+            <Clock className="w-5 h-5" />
+            <span>ساعت شروع</span>
+          </Label>
+          <TimePicker
+            value={startTime}
+            onChange={(time: Date) => {
+              setStartTime(time)
+              setErrors(prev => ({ ...prev, startTime: '', endTime: '' }))
+            }}
+            className="w-full"
+          />
+          {errors.startTime && (
+            <p className="mt-1 text-sm text-red-600 text-right flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.startTime}
+            </p>
+          )}
+        </div>
+        <div>
+          <Label className="mb-2 text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2">
+            <Clock className="w-5 h-5" />
+            <span>ساعت پایان</span>
+          </Label>
+          <TimePicker
+            value={endTime}
+            onChange={(time: Date) => {
+              setEndTime(time)
+              setErrors(prev => ({ ...prev, endTime: '' }))
+            }}
+            className="w-full"
+          />
+          {errors.endTime && (
+            <p className="mt-1 text-sm text-red-600 text-right flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.endTime}
+            </p>
+          )}
+        </div>
+        <div>
+          <Label className="mb-2 text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            <span>تعداد رزرو</span>
+          </Label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min="1"
+              max="5"
+              value={defaultCapacity}
+              onChange={(e) => setDefaultCapacity(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center font-medium"
+            />
+            <span className="left-3 top-3 text-gray-500 dark:text-gray-400">نفر</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => setCurrentStep(1)}
+          className="flex-1 py-3 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2"
+        >
+          <ArrowRight className="w-4 h-4" />
+          مرحله قبل
+        </button>
+        <button
+          onClick={generateTimeSlots}
+          className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all"
+        >
+          تولید نوبت‌ها
+        </button>
+      </div>
+    </div>
+  );
+
+  const StepTimeSlots = () => (
+    <div className="space-y-6 text-right" dir="rtl">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+          <ListChecks className="w-5 h-5" />
+          گام ۳: نوبت‌های تولید شده
+        </h3>
+        <button
+          onClick={addCustomSlot}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-all"
+        >
+          <span>نوبت جدید</span>
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
+        {timeSlots.map((slot) => (
+          <div
+            key={slot.id}
+            className={`flex items-center justify-between p-4 border rounded-xl transition-all ${slot.isActive
+              ? 'border-green-400 bg-green-50 dark:bg-green-900/20'
+              : 'border-red-300 bg-red-50 dark:bg-red-900/20'
+              }`}
+          >
+            <div className="flex items-center gap-4 flex-1">
+              <button
+                onClick={() => toggleSlot(slot.id)}
+                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${slot.isActive
+                  ? 'bg-green-500 hover:bg-green-600 text-white'
+                  : 'bg-red-500 hover:bg-red-600 text-white'
+                  }`}
+              >
+                {slot.isActive ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+              </button>
+
+              <div className="flex-1">
+                {slot.isCustom ? (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                      <div className="w-full sm:flex-1">
+                        <TimePicker
+                          value={slot.startTime as Date}
+                          onChange={(val: Date) => updateCustomSlot(slot.id, 'startTime', val)}
+                          className="w-full text-sm sm:text-base"
+                          label="شروع"
+                        />
+                        {errors[`${slot.id}-startTime`] && (
+                          <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {errors[`${slot.id}-startTime`]}
+                          </p>
+                        )}
+                      </div>
+
+                      <span className="hidden sm:inline text-gray-500 dark:text-gray-400">تا</span>
+
+                      <div className="w-full sm:flex-1">
+                        <TimePicker
+                          value={slot.endTime as Date}
+                          onChange={(val: Date) => updateCustomSlot(slot.id, 'endTime', val)}
+                          className="w-full text-sm sm:text-base"
+                          label="پایان"
+                        />
+                        {errors[`${slot.id}-endTime`] && (
+                          <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {errors[`${slot.id}-endTime`]}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium dark:text-gray-200 text-sm sm:text-base">
+                      {formatTimeForDisplay(slot.startTime)} - {formatTimeForDisplay(slot.endTime)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-center mr-5">
+                <Label className="text-xs dark:text-gray-300 mb-2">ظرفیت</Label>
+                <input
+                  type="number"
+                  min="1"
+                  max="4"
+                  value={slot.capacity}
+                  onChange={(e) => updateSlotCapacity(slot.id, parseInt(e.target.value) || 1)}
+                  className="w-12 p-1 border border-gray-200 dark:border-gray-600 rounded text-center dark:bg-gray-700 dark:text-gray-200"
+                />
+              </div>
+
+              {slot.isCustom && (
+                <button
+                  onClick={() => deleteCustomSlot(slot.id)}
+                  className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => setCurrentStep(2)}
+          className="flex-1 py-3 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2"
+        >
+          <ArrowRight className="w-4 h-4" />
+          مرحله قبل
+        </button>
+        <button
+          onClick={() => setCurrentStep(4)}
+          className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all"
+        >
+          ادامه
+        </button>
+      </div>
+    </div>
+  );
+
+  const StepSummary = () => (
+    <div className="space-y-6 text-right" dir="rtl">
+      <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+        <ClipboardCheck className="w-5 h-5" />
+        گام ۴: بررسی نهایی
+      </h3>
+
+      <div className="space-y-4">
+        <div className="p-5 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+          <h4 className="font-semibold mb-3 dark:text-gray-200 flex items-center gap-2">
+            <CalendarDays className="w-4 h-4" />
+            روزهای انتخاب شده:
+          </h4>
+          <div className="flex flex-wrap gap-2 justify-end">
+            {isWeeklyMode ? (
+              selectedDates.map((date, index) => (
+                <span
+                  key={index}
+                  className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium flex items-center gap-1"
+                >
+                  {weekDays.find(d => d.key === date)?.label || date}
+                </span>
+              ))
+            ) : (
+              <span className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">
+                {selectedSpecificDate}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="p-5 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+          <h4 className="font-semibold mb-3 dark:text-gray-200 flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            نوبت‌های فعال:
+          </h4>
+          <div className="space-y-3">
+            {timeSlots.filter(slot => slot.isActive).map(slot => (
+              <div
+                key={slot.id}
+                className="flex justify-between items-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-600"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full">
+                    ظرفیت: {slot.capacity} نفر
+                  </span>
+                  {slot.isCustom && (
+                    <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full">
+                      سفارشی
+                    </span>
+                  )}
+                </div>
+                <span className="font-medium dark:text-gray-200">
+                  {formatTimeForDisplay(slot.startTime)} - {formatTimeForDisplay(slot.endTime)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => setCurrentStep(3)}
+          className="flex-1 py-3 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2"
+        >
+          <ArrowRight className="w-4 h-4" />
+          مرحله قبل
+        </button>
+        <button
+          onClick={() => saveShift()}
+          className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+        >
+          <Save className="w-5 h-5" />
+          ذخیره و انتشار
+        </button>
+      </div>
+    </div>
+  );
+
+  const StepConfirmation = () => (
+    <div className="text-center space-y-6" dir="rtl">
+      <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
+        <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+          <Check className="w-8 h-8 text-white" />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">نوبت‌ها با موفقیت ذخیره شد!</h3>
+        <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+          تمام نوبت‌های تعریف شده برای کاربران قابل رزرو است و می‌توانند از طریق لینک اختصاصی شما اقدام به رزرو کنند.
+        </p>
+      </div>
+
+      <button
+        onClick={() => {
+          setCurrentStep(1)
+          setSelectedDates([])
+          setSelectedSpecificDate('')
+          setTimeSlots([])
+          setErrors({})
+        }}
+        className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all inline-flex items-center gap-2"
+      >
+        تعریف نوبت جدید
+        <Plus className="w-5 h-5" />
+      </button>
+    </div>
+  );
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 1: return <StepDateSelection />
+      case 2: return <StepTimeRange />
+      case 3: return <StepTimeSlots />
+      case 4: return <StepSummary />
+      case 5: return <StepConfirmation />
+      default: return <StepDateSelection />
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+      <div className="mb-8">
+        <div className="relative">
+          <div className="absolute top-1/2 left-0 right-0 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full -translate-y-1/2"></div>
+          <div
+            className="absolute top-1/2 right-0 h-1.5 bg-blue-500 rounded-full -translate-y-1/2 transition-all duration-500"
+            style={{ width: `${(currentStep / 5) * 100}%` }}
+          ></div>
+          <div className="flex items-center justify-between relative z-10">
+            {[1, 2, 3, 4, 5].map((step) => (
+              <div
+                key={step}
+                onClick={() => step < currentStep && setCurrentStep(step)}
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium cursor-pointer transition-all ${step <= currentStep
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-600'
+                  } ${step < currentStep ? 'hover:bg-blue-400' : ''}`}
+              >
+                {step}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {renderCurrentStep()}
+    </div>
+  )
 }

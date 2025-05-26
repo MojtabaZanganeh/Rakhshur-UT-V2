@@ -16,9 +16,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, Shield } from 'lucide-react';
 
 const profileSchema = z.object({
-  firstName: z.string().min(2, { message: 'First name must be at least 2 characters' }),
-  lastName: z.string().min(2, { message: 'Last name must be at least 2 characters' }),
-  studentId: z.string().min(5, { message: 'Student ID must be at least 5 characters' }),
+  first_name: z.string().min(2, { message: 'First name must be at least 2 characters' }),
+  last_name: z.string().min(2, { message: 'Last name must be at least 2 characters' }),
+  student_id: z.string().min(5, { message: 'Student ID must be at least 5 characters' }),
   dormitory: z.enum(['dormitory-1', 'dormitory-2']),
 });
 
@@ -31,15 +31,15 @@ export default function ProfilePage() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      firstName: user?.firstName || '',
-      lastName: user?.lastName || '',
-      studentId: user?.studentId || '',
+      first_name: user?.first_name || '',
+      last_name: user?.last_name || '',
+      student_id: user?.student_id || '',
       dormitory: user?.dormitory || 'dormitory-1',
     },
     values: {
-      firstName: user?.firstName || '',
-      lastName: user?.lastName || '',
-      studentId: user?.studentId || '',
+      first_name: user?.first_name || '',
+      last_name: user?.last_name || '',
+      student_id: user?.student_id || '',
       dormitory: user?.dormitory || 'dormitory-1',
     },
   });
@@ -92,7 +92,7 @@ export default function ProfilePage() {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <FormField
                       control={form.control}
-                      name="firstName"
+                      name="first_name"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
@@ -106,7 +106,7 @@ export default function ProfilePage() {
                     
                     <FormField
                       control={form.control}
-                      name="lastName"
+                      name="last_name"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Last Name</FormLabel>
@@ -121,7 +121,7 @@ export default function ProfilePage() {
                   
                   <FormField
                     control={form.control}
-                    name="studentId"
+                    name="student_id"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Student ID</FormLabel>

@@ -8,7 +8,6 @@ export async function safeJsonFetch<T>(
   token?: string
 ): Promise<T | null> {
   const url = `${API_BASE_URL}${endpoint}`;
-  console.log(API_AUTH_TOKEN)
 
   try {
     const response = await fetch(url, {
@@ -24,7 +23,14 @@ export async function safeJsonFetch<T>(
     });
 
     if (!response.ok) {
-      console.error("Failed to fetch data:", response);
+      try {
+        const errorData = await response.json();
+        console.error("Error response from API:", errorData);
+        return errorData;
+      } catch (jsonErr) {
+        console.error("Failed to parse error JSON:", jsonErr);
+      }
+
       return null;
     }
 
@@ -36,7 +42,6 @@ export async function safeJsonFetch<T>(
 
     try {
       const data = JSON.parse(text) as T;
-      console.log(data);
       return data;
     } catch (jsonErr) {
       console.error("Failed to parse JSON:", jsonErr);
