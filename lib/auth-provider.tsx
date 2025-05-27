@@ -93,13 +93,8 @@ export function AuthProvider({ children, page, }: { children: React.ReactNode; p
 
       const data = await response.json();
 
-      if (response.status === 200) {
-        if (data.success) {
-          return true;
-        }
-        else {
-          throw new Error(data.message);
-        }
+      if (response.status === 200 && data.success) {
+        return true;
       }
       else {
         throw new Error(data.message);
@@ -127,26 +122,17 @@ export function AuthProvider({ children, page, }: { children: React.ReactNode; p
       });
 
       const data = await response.json();
-      if (response.status === 200) {
+      if (response.status === 200 && data.success) {
+        setUser(data.user);
+        toast.success('ورود موفقیت‌آمیز بود');
 
-        if (data.success) {
-
-          setUser(data.user);
-
-          toast.success('ورود موفقیت‌آمیز بود');
-
-          if (data.user.role === 'user') {
-            router.push('/dashboard');
-          } else if (data.user.role.startsWith('admin')) {
-            router.push('/admin');
-          }
-
-          return true;
-        }
-        else {
-          throw new Error(data.message);
+        if (data.user.role === 'user') {
+          router.push('/dashboard');
+        } else if (data.user.role.startsWith('admin')) {
+          router.push('/admin');
         }
 
+        return true;
       } else {
         throw new Error(data.message);
       }
@@ -192,17 +178,12 @@ export function AuthProvider({ children, page, }: { children: React.ReactNode; p
       });
 
       const data = await response.json();
-      if (response.status === 200) {
-        if (data.success) {
-          setUser(data.user);
-          toast.success('ثبت‌نام با موفقیت انجام شد');
-          router.push('/dashboard');
+      if (response.status === 200 && data.success) {
+        setUser(data.user);
+        toast.success('ثبت‌نام با موفقیت انجام شد');
+        router.push('/dashboard');
 
-          return true;
-        }
-        else {
-          throw new Error(data.message);
-        }
+        return true;
       } else {
         throw new Error(data.message);
       }

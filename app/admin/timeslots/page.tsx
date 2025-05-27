@@ -5,12 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PlusCircle, Calendar, Clock, Users, MoreVertical, Loader2 } from 'lucide-react';
+import { PlusCircle, Calendar, Clock, Users, MoreVertical, Loader2, CalendarDays } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'react-hot-toast';
 import { DropdownMenu, DropdownMenuItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { TimePicker } from '@/components/ui/time-picker';
+import JalaliDatePicker from '@/components/ui/date-picker';
+import DateObject from "react-date-object";
+import persian from "react-date-object/calendars/persian";
 
 type TimeSlot = {
     id: string;
@@ -32,8 +35,8 @@ type EditingSlot = {
     id: string;
     date: string;
     index: number;
-    startTime: Date;
-    endTime: Date;
+    start_time: Date;
+    end_time: Date;
 };
 
 const formatDate = (dateString: string): string => {
@@ -56,6 +59,38 @@ const formatTimeToString = (date: Date): string => {
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 };
 
+const jalaliToGregorian = (jalaliDate: string): Date | null => {
+    try {
+        const parts = jalaliDate.split('/');
+        if (parts.length !== 3) return null;
+
+        const dateObj = new DateObject({
+            date: jalaliDate,
+            format: "YYYY/MM/DD",
+            calendar: persian
+        });
+
+        const gregorianDate = dateObj.convert(persian).toDate();
+        return gregorianDate;
+    } catch (error) {
+        console.error('Error converting date:', error);
+        return null;
+    }
+};
+
+function gregorianToJalali(date: Date): string | null {
+    try {
+        const dateObj = new DateObject({
+            date,
+            calendar: persian
+        });
+        return dateObj.format("YYYY/MM/DD");
+    } catch (error) {
+        console.error('Error converting date to Jalali:', error);
+        return null;
+    }
+}
+
 export default function AdminTimeSlotsPage() {
     const [timeSlots, setTimeSlots] = useState<TimeSlotsData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +98,7 @@ export default function AdminTimeSlotsPage() {
     const [editingSlot, setEditingSlot] = useState<EditingSlot | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchTimeSlots = async () => {
@@ -78,13 +114,8 @@ export default function AdminTimeSlotsPage() {
 
                 const data = await response.json();
 
-                if (response.status === 200) {
-                    if (data.success) {
-                        setTimeSlots(data.timeslots);
-                    }
-                    else {
-                        throw new Error(data.message);
-                    }
+                if (response.status === 200 && data.success) {
+                    setTimeSlots(data.timeslots);
                 }
                 else {
                     throw new Error(data.message);
@@ -101,28 +132,101 @@ export default function AdminTimeSlotsPage() {
         fetchTimeSlots();
     }, []);
 
+    const handleDateSelect = (date: string) => {
+        setSelectedDate(date);
+
+        if (!date || !timeSlots) {
+            setActiveTab('all');
+            return;
+        }
+
+        const formatDateToLocalDate = (date: Date): string => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        const formatDateToISO = (dateString: string): string => {
+            return new Date(dateString).toISOString().split('T')[0];
+        };
+        const gregorianDate = jalaliToGregorian(date);
+        if (!gregorianDate) {
+            toast.error('تاریخ نامعتبر است');
+            setActiveTab('all');
+            return;
+        }
+
+        const isoDate = formatDateToLocalDate(gregorianDate);
+        const availableDates = Object.keys(timeSlots);
+
+        const matchingDate = availableDates.find(d => formatDateToISO(d) === isoDate);
+
+        if (matchingDate) {
+            setActiveTab(matchingDate);
+        } else {
+            setActiveTab('all');
+            toast.error('برای تاریخ انتخاب شده نوبتی وجود ندارد');
+        }
+    };
+
+    const calculateActiveDaysOfJalaliYear = () => {
+        if (!timeSlots) return [];
+
+        const activeDaysSet = new Set<number>();
+
+        Object.keys(timeSlots).forEach(dateStr => {
+            const gregorianDate = new Date(dateStr);
+            const jalaliDate = gregorianToJalali(gregorianDate);
+            if (jalaliDate) {
+                const dayOfYear = getJalaliDayOfYear(jalaliDate);
+                activeDaysSet.add(dayOfYear);
+            }
+        });
+
+        return Array.from(activeDaysSet);
+    };
+
+    function getJalaliDayOfYear(jalaliDateStr: string): number {
+        try {
+            const dateObj = new DateObject({
+                date: jalaliDateStr,
+                format: "YYYY/MM/DD",
+                calendar: persian
+            });
+            return dateObj.dayOfYear;
+        } catch (error) {
+            console.error('Error calculating day of year:', error);
+            return 0;
+        }
+    }
+
     const generateTabs = () => {
         if (!timeSlots) return null;
 
-        const dates = Object.keys(timeSlots);
+        const activeDays = calculateActiveDaysOfJalaliYear();
 
         return (
-            <TabsList className="mb-4 flex-wrap h-auto" dir='rtl'>
-                <TabsTrigger value="all" onClick={() => setActiveTab('all')} className="px-4 py-2">
-                    همه تاریخ‌ها
-                </TabsTrigger>
-                {dates.map((date) => (
-                    <TabsTrigger
-                        key={date}
-                        value={date}
-                        onClick={() => setActiveTab(date)}
-                        className="px-4 py-2"
-                        dir='rtl'
-                    >
-                        {formatDate(date)}
-                    </TabsTrigger>
-                ))}
-            </TabsList>
+            <div className="flex flex-row justify-end items-stretch gap-3 mb-6" dir="rtl">
+                <div>
+                    <JalaliDatePicker
+                        selected={selectedDate}
+                        onChange={handleDateSelect}
+                        mapDays={activeDays}
+                        className='pr-10 p-3 border rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all'
+                    />
+                </div>
+
+                <Button
+                    variant={activeTab === 'all' ? 'secondary' : 'outline'}
+                    onClick={() => setActiveTab('all')}
+                    className={`whitespace-nowrap h-auto py-2 px-4 rounded-lg transition-all ${activeTab === 'all' ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
+                >
+                    <CalendarDays className="w-5 h-5 ml-2" />
+                    نمایش همه تاریخ‌ها
+                </Button>
+            </div>
         );
     };
 
@@ -134,8 +238,8 @@ export default function AdminTimeSlotsPage() {
             id: slot.id,
             date,
             index,
-            startTime: parseTimeString(slot.start_time),
-            endTime: parseTimeString(slot.end_time)
+            start_time: parseTimeString(slot.start_time),
+            end_time: parseTimeString(slot.end_time)
         });
     };
 
@@ -149,8 +253,8 @@ export default function AdminTimeSlotsPage() {
         try {
             setIsUpdating(true);
 
-            const startTime = formatTimeToString(editingSlot.startTime);
-            const endTime = formatTimeToString(editingSlot.endTime);
+            const start_time = formatTimeToString(editingSlot.start_time);
+            const end_time = formatTimeToString(editingSlot.end_time);
 
             const response = await fetch('/api/timeslots/edit', {
                 method: 'POST',
@@ -160,8 +264,8 @@ export default function AdminTimeSlotsPage() {
                 credentials: 'include',
                 body: JSON.stringify({
                     slot_id: editingSlot.id,
-                    start_time: startTime,
-                    end_time: endTime
+                    start_time: start_time,
+                    end_time: end_time
                 }),
             });
 
@@ -170,8 +274,8 @@ export default function AdminTimeSlotsPage() {
             if (response.status === 200 && data.success) {
                 const updatedTimeSlots = { ...timeSlots };
                 const slot = updatedTimeSlots[editingSlot.date].slots[editingSlot.index];
-                slot.start_time = startTime;
-                slot.end_time = endTime;
+                slot.start_time = start_time;
+                slot.end_time = end_time;
 
                 setTimeSlots(updatedTimeSlots);
                 setEditingSlot(null);
@@ -284,8 +388,8 @@ export default function AdminTimeSlotsPage() {
                                                     {editingSlot && editingSlot.date === date && editingSlot.index === index ? (
                                                         <div className="w-32 mx-auto">
                                                             <TimePicker
-                                                                value={editingSlot.startTime}
-                                                                onChange={(newTime) => setEditingSlot({ ...editingSlot, startTime: newTime })}
+                                                                value={editingSlot.start_time}
+                                                                onChange={(newTime) => setEditingSlot({ ...editingSlot, start_time: newTime })}
                                                             />
                                                         </div>
                                                     ) : slot.start_time}
@@ -294,8 +398,8 @@ export default function AdminTimeSlotsPage() {
                                                     {editingSlot && editingSlot.date === date && editingSlot.index === index ? (
                                                         <div className="w-32 mx-auto">
                                                             <TimePicker
-                                                                value={editingSlot.endTime}
-                                                                onChange={(newTime) => setEditingSlot({ ...editingSlot, endTime: newTime })}
+                                                                value={editingSlot.end_time}
+                                                                onChange={(newTime) => setEditingSlot({ ...editingSlot, end_time: newTime })}
                                                             />
                                                         </div>
                                                     ) : slot.end_time}
@@ -394,15 +498,15 @@ export default function AdminTimeSlotsPage() {
                                                     <div className="space-y-1 text-right">
                                                         <p className="text-muted-foreground">زمان شروع</p>
                                                         <TimePicker
-                                                            value={editingSlot.startTime}
-                                                            onChange={(newTime) => setEditingSlot({ ...editingSlot, startTime: newTime })}
+                                                            value={editingSlot.start_time}
+                                                            onChange={(newTime) => setEditingSlot({ ...editingSlot, start_time: newTime })}
                                                         />
                                                     </div>
                                                     <div className="space-y-1 text-right">
                                                         <p className="text-muted-foreground">زمان پایان</p>
                                                         <TimePicker
-                                                            value={editingSlot.endTime}
-                                                            onChange={(newTime) => setEditingSlot({ ...editingSlot, endTime: newTime })}
+                                                            value={editingSlot.end_time}
+                                                            onChange={(newTime) => setEditingSlot({ ...editingSlot, end_time: newTime })}
                                                         />
                                                     </div>
                                                 </div>
@@ -474,7 +578,7 @@ export default function AdminTimeSlotsPage() {
                 </Link>
             </div>
 
-            <Tabs defaultValue="all" className="space-y-4">
+            <Tabs value={activeTab} className="space-y-4">
                 {generateTabs()}
                 <TabsContent value={activeTab} className="space-y-4">
                     {renderTimeSlots()}

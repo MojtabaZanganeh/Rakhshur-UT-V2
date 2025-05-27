@@ -24,7 +24,7 @@
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
+    --primary: 221.21 83.19% 53.33%;
     --primary-foreground: 0 0% 98%;
     --secondary: 0 0% 96.1%;
     --secondary-foreground: 0 0% 9%;
@@ -37,12 +37,13 @@
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
     --ring: 0 0% 3.9%;
-    --chart-1: 30, 90%, 70%;
-    --chart-2: 210, 90%, 70%;
-    --chart-3: 120, 70%, 65%;
-    --chart-4: 0, 0%, 80%;
-    --chart-5: 43 74% 66%;
-    --chart-6: 27 87% 67%;
+    --chart-pending: 30, 90%, 70%;
+    --chart-washing: 210, 90%, 70%;
+    --chart-ready: 120, 70%, 65%;
+    --chart-finished: 0, 0%, 80%;
+    --chart-cancelled: 43 74% 66%;
+    --chart-dormitory-1: 27 87% 67%;
+    --chart-dormitory-2: 27 87% 67%;
     --radius: 0.5rem;
   }
   .dark {
@@ -65,12 +66,13 @@
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 0 0% 83.1%;
-    --chart-1: 30, 80%, 50%;
-    --chart-2: 204 100% 54.5%;
-    --chart-3: 120, 60%, 45%;
-    --chart-4: 0, 0%, 40%;
-    --chart-5: 280 65% 60%;
-    --chart-6: 340 75% 55%;
+    --chart-pending: 30, 80%, 50%;
+    --chart-washing: 204 100% 54.5%;
+    --chart-ready: 120, 60%, 45%;
+    --chart-finished: 0, 0%, 40%;
+    --chart-cancelled: 280 65% 60%;
+    --chart-dormitory-1: 280 65% 60%;
+    --chart-dormitory-2: 340 75% 55%;
   }
 }
 

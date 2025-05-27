@@ -61,19 +61,19 @@ export default function ReservationDetailsPage() {
       
       const mockReservation: Reservation = {
         id: params.id as string,
-        userId: 'user-123',
+        user_id: 'user-123',
         timeSlots: [
           {
             id: 'slot-1',
-            startTime: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
-            endTime: new Date(now.getTime() + 2.5 * 60 * 60 * 1000).toISOString(), // 2.5 hours from now
+            start_time: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
+            end_time: new Date(now.getTime() + 2.5 * 60 * 60 * 1000).toISOString(), // 2.5 hours from now
             dormitory: 'dormitory-1',
             isAvailable: false,
           },
           {
             id: 'slot-2',
-            startTime: new Date(now.getTime() + 2.5 * 60 * 60 * 1000).toISOString(), // 2.5 hours from now
-            endTime: new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString(), // 3 hours from now
+            start_time: new Date(now.getTime() + 2.5 * 60 * 60 * 1000).toISOString(), // 2.5 hours from now
+            end_time: new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString(), // 3 hours from now
             dormitory: 'dormitory-1',
             isAvailable: false,
           },
@@ -99,8 +99,8 @@ export default function ReservationDetailsPage() {
     return format(date, 'HH:mm');
   };
 
-  const formatTimeSlot = (startTime: string, endTime: string) => {
-    return `${formatTime(startTime)} - ${formatTime(endTime)}`;
+  const formatTimeSlot = (start_time: string, end_time: string) => {
+    return `${formatTime(start_time)} - ${formatTime(end_time)}`;
   };
 
   const cancelReservation = async () => {
@@ -171,10 +171,10 @@ export default function ReservationDetailsPage() {
                     <div className="flex justify-between">
                       <div>
                         <div className="font-medium">
-                          {formatDate(slot.startTime)}
+                          {formatDate(slot.start_time)}
                         </div>
                         <div>
-                          {formatTimeSlot(slot.startTime, slot.endTime)}
+                          {formatTimeSlot(slot.start_time, slot.end_time)}
                         </div>
                       </div>
                       <div>

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const token = tokenCookie.split("=")[1];
 
     const response = await safeJsonFetch<{ user: User; message: string }>(
-      "/timeslots/get",
+      "/reservations/recent",
       "GET",
       undefined,
       token
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     if (!response || response.message == "") {
       return NextResponse.json(
-        { message: "دریافت نوبت ها با خطا مواجه شد" },
+        { message: "دریافت رزروهای اخیر با خطا مواجه شد" },
         { status: 401 }
       );
     }
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     return nextResponse;
   } catch (error) {
-    console.error("خطا در دریافت نوبت ها:", error);
+    console.error("خطا در دریافت رزروهای اخیر:", error);
     return NextResponse.json({ message: "خطای سرور" }, { status: 500 });
   }
 }

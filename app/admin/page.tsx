@@ -23,6 +23,7 @@ import {
   Cell,
   Legend
 } from 'recharts';
+import toast from 'react-hot-toast';
 
 type AdminStats = {
   totalReservations: number;
@@ -32,10 +33,11 @@ type AdminStats = {
     'dormitory-2': number;
   };
   statusCounts: {
-    waiting: number;
+    pending: number;
     washing: number;
     ready: number;
     finished: number;
+    cancelled: number;
   };
   weeklyReservations: {
     day: string;
@@ -43,11 +45,11 @@ type AdminStats = {
   }[];
 };
 
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
+const COLORS = ['hsl(var(--chart-pending))', 'hsl(var(--chart-washing))', 'hsl(var(--chart-ready))', 'hsl(var(--chart-finished))'];
 
-const DORMITORY_COLORS = ['hsl(var(--chart-5))', 'hsl(var(--chart-6))'];
+const DORMITORY_COLORS = ['hsl(var(--chart-cancelled))', 'hsl(var(--chart-dormitory-1))'];
 
-// export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -55,124 +57,114 @@ export default function AdminDashboard() {
   const [recentReservations, setRecentReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // تشخیص نوع ادمین
+  const isMainAdmin = user?.role === 'admin';
+  const isDormitoryAdmin = user?.role.startsWith('admin-dormitory');
+  const adminDormitory = isDormitoryAdmin ? user?.role.replace('admin-', '') : null;
+
   useEffect(() => {
     const loadAdminData = async () => {
       try {
-        const statsData = await fetchApi<{ stats: AdminStats }>('/admin/stats');
-        setStats(statsData.stats);
+        setIsLoading(true);
+        const response = await fetch('/api/reservations/info', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
 
-        const reservationsData = await fetchApi<{ reservations: Reservation[] }>('/admin/reservations/recent');
-        setRecentReservations(reservationsData.reservations);
+        const data = await response.json();
+
+        if (response.status === 200 && data.success) {
+          setStats(data.info);
+        }
+        else {
+          throw new Error(data.message);
+        }
+
       } catch (error) {
-        console.error('Error loading admin data:', error);
+        console.error('Failed to fetch info:', error);
+        toast.error(error instanceof Error && error.message ? error.message : 'خطا در بارگذاری آمار');
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadAdminData();
+    const loadRecentReservations = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/reservations/recent', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+
+        const data = await response.json();
+
+        if (response.status === 200 && data.success) {
+
+          if (isDormitoryAdmin && adminDormitory) {
+            setRecentReservations(data.recent.filter(
+              (reservation: Reservation) => reservation.timeSlots.dormitory === adminDormitory
+            ));
+          } else {
+            setRecentReservations(data.recent);
+          }
+        }
+        else {
+          throw new Error(data.message);
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch recent reservations:', error);
+        toast.error(error instanceof Error && error.message ? error.message : 'خطا در بارگذاری رزروهای اخیر');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
 
     setTimeout(() => {
-      setStats({
-        totalReservations: 87,
-        totalUsers: 42,
-        dormitoryCounts: {
-          'dormitory-1': 48,
-          'dormitory-2': 39,
-        },
-        statusCounts: {
-          waiting: 12,
-          washing: 22,
-          ready: 15,
-          finished: 150,
-        },
-        weeklyReservations: [
-          { day: 'شنبه', count: 14 },
-          { day: 'یکشنبه', count: 10 },
-          { day: 'دوشنبه', count: 8 },
-          { day: 'سه‌شنبه', count: 12 },
-          { day: 'چهارشنبه', count: 15 },
-          { day: 'پنج‌شنبه', count: 10 },
-          { day: 'جمعه', count: 30 },
-        ],
-      });
-
-      setRecentReservations([
-        {
-          id: '1234abcd',
-          userId: 'user1',
-          timeSlots: [
-            {
-              id: 'slot1',
-              startTime: '2025-01-01T14:30:00Z',
-              endTime: '2025-01-01T15:00:00Z',
-              dormitory: 'dormitory-1',
-            },
-          ],
-          status: 'washing',
-          createdAt: '2025-01-01T12:00:00Z',
-          updatedAt: '2025-01-01T12:00:00Z',
-          paymentStatus: 'completed',
-        },
-        {
-          id: '5678efgh',
-          userId: 'user2',
-          timeSlots: [
-            {
-              id: 'slot2',
-              startTime: '2025-01-01T15:30:00Z',
-              endTime: '2025-01-01T16:00:00Z',
-              dormitory: 'dormitory-2',
-            },
-          ],
-          status: 'washing',
-          createdAt: '2025-01-01T13:00:00Z',
-          updatedAt: '2025-01-01T14:00:00Z',
-          paymentStatus: 'completed',
-        },
-        {
-          id: '9012ijkl',
-          userId: 'user3',
-          timeSlots: [
-            {
-              id: 'slot3',
-              startTime: '2025-01-01T16:30:00Z',
-              endTime: '2025-01-01T17:00:00Z',
-              dormitory: 'dormitory-1',
-            },
-          ],
-          status: 'waiting',
-          createdAt: '2025-01-01T14:00:00Z',
-          updatedAt: '2025-01-01T15:30:00Z',
-          paymentStatus: 'completed',
-        },
-      ]);
-
+      loadAdminData();
+      loadRecentReservations();
       setIsLoading(false);
     }, 1000);
-  }, []);
+  }, [isDormitoryAdmin, adminDormitory]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('fa-IR', {
       month: 'short',
       day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
     }).format(date);
   };
 
   const statusData = stats ? [
-    { name: 'در انتظار', value: stats.statusCounts.waiting },
+    { name: 'در انتظار', value: stats.statusCounts.pending },
     { name: 'در حال شستشو', value: stats.statusCounts.washing },
     { name: 'آماده', value: stats.statusCounts.ready },
     { name: 'تحویل داده شده', value: stats.statusCounts.finished },
+    { name: 'لغو شده', value: stats.statusCounts.cancelled },
   ] : [];
 
   const dormitoryData = stats ? [
     { name: 'خوابگاه ۱', value: stats.dormitoryCounts['dormitory-1'] },
     { name: 'خوابگاه ۲', value: stats.dormitoryCounts['dormitory-2'] },
   ] : [];
+
+  const getDormitoryStats = () => {
+    if (!stats || !adminDormitory) return null;
+
+    return {
+      totalReservations: stats.dormitoryCounts[adminDormitory as keyof typeof stats.dormitoryCounts] || 0,
+      statusCounts: stats.statusCounts
+    };
+  };
+
+  const dormitoryStats = getDormitoryStats();
 
   return (
     <div className="space-y-6">
@@ -181,9 +173,12 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold tracking-tight">داشبورد مدیریت</h1>
           <p className="text-muted-foreground">
             خوش آمدید، {user?.first_name} {user?.last_name}
+            {isDormitoryAdmin && adminDormitory === 'dormitory-1' && ' (ادمین خوابگاه ۱)'}
+            {isDormitoryAdmin && adminDormitory === 'dormitory-2' && ' (ادمین خوابگاه ۲)'}
           </p>
         </div>
-        <Link href="/admin/timeslots/new">
+
+        <Link href={isDormitoryAdmin ? `/admin/timeslots/new?dormitory=${adminDormitory}` : "/admin/timeslots/new"}>
           <Button>
             <PlusCircle className="ml-2 h-4 w-4" />
             افزودن نوبت جدید
@@ -194,20 +189,27 @@ export default function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">کل رزروها</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {isDormitoryAdmin ? 'رزروهای خوابگاه' : 'کل رزروها'}
+            </CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
-              <div className="text-2xl font-bold">{stats?.totalReservations}</div>
+              <div className="text-2xl font-bold">
+                {stats?.totalReservations}
+              </div>
             )}
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">کل کاربران</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {isDormitoryAdmin ? 'کاربران خوابگاه' : 'کل کاربران'}
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -218,42 +220,50 @@ export default function AdminDashboard() {
             )}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">خوابگاه ۱</CardTitle>
-            <Building className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-2xl font-bold">{stats?.dormitoryCounts['dormitory-1']}</div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">خوابگاه ۲</CardTitle>
-            <Building className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-2xl font-bold">{stats?.dormitoryCounts['dormitory-2']}</div>
-            )}
-          </CardContent>
-        </Card>
+
+        {(isMainAdmin) && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">خوابگاه ۱</CardTitle>
+              <Building className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                <div className="text-2xl font-bold">{stats?.dormitoryCounts['dormitory-1']}</div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {(isMainAdmin) && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">خوابگاه ۲</CardTitle>
+              <Building className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                <div className="text-2xl font-bold">{stats?.dormitoryCounts['dormitory-2']}</div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">نمای کلی</TabsTrigger>
-          <TabsTrigger value="analytics">تحلیل‌ها</TabsTrigger>
-        </TabsList>
+        {isMainAdmin &&
+          <TabsList>
+            <TabsTrigger value="overview">نمای کلی</TabsTrigger>
+            <TabsTrigger value="analytics">تحلیل‌ها</TabsTrigger>
+          </TabsList>
+        }
 
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mb-8">
             <Card className="col-span-4">
               <CardHeader>
                 <CardTitle dir='rtl'>رزروهای هفتگی</CardTitle>
@@ -270,7 +280,7 @@ export default function AdminDashboard() {
                       <XAxis dataKey="day" />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="count" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="count" fill="hsl(var(--chart-washing))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -321,40 +331,48 @@ export default function AdminDashboard() {
             </div>
           ) : (
             <div className="space-y-4" dir='rtl'>
-              {recentReservations.map((reservation) => (
-                <Card key={reservation.id}>
-                  <CardContent className="p-4">
-                    <div className="flex flex-col sm:flex-row justify-between gap-4">
-                      <div>
-                        <div className="font-medium">
-                          رزرو #{reservation.id.substring(0, 8)}
+              {recentReservations.length > 0 ? (
+                recentReservations.map((reservation) => (
+                  <Card key={reservation.id}>
+                    <CardContent className="p-4">
+                      <div className="flex flex-col sm:flex-row justify-between gap-4">
+                        <div>
+                          <div className="font-medium">
+                            رزرو #{reservation.id}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {formatDate(reservation.timeSlots.date || '')} - {reservation.timeSlots.start_time.toString()} • {reservation.timeSlots.dormitory === 'dormitory-1' ? 'خوابگاه ۱' : 'خوابگاه ۲'}
+                          </div>
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {formatDate(reservation.createdAt)} • {reservation.timeSlots[0].dormitory === 'dormitory-1' ? 'خوابگاه ۱' : 'خوابگاه ۲'}
+                        <div className="flex items-center gap-2">
+                          <div className={`text-sm capitalize px-2 py-1 rounded-full text-white dark:text-white
+                            ${reservation.status === 'pending' ? 'bg-[hsl(var(--chart-pending))]' :
+                              reservation.status === 'washing' ? 'bg-[hsl(var(--chart-washing))]' :
+                                reservation.status === 'ready' ? 'bg-[hsl(var(--chart-ready))]' :
+                                  reservation.status === 'finished' ? 'bg-[hsl(var(--chart-finished))]' :
+                                    reservation.status === 'cancelled' ? 'bg-[hsl(var(--chart-finished))]' : 'bg-gray-400'}
+                            `}>
+                            {reservation.status === 'pending' ? 'در انتظار' :
+                              reservation.status === 'washing' ? 'در حال شستشو' :
+                                reservation.status === 'ready' ? 'آماده' :
+                                  reservation.status === 'finished' ? 'تحویل داده شده' :
+                                    reservation.status === 'cancelled' ? 'لغو شده' : reservation.status}
+                          </div>
+                          <Link href={`/admin/reservations/${reservation.id}`}>
+                            <Button variant="default" size="sm">مدیریت</Button>
+                          </Link>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className={`text-sm capitalize px-2 py-1 rounded-full  text-white dark:text-white
-                          ${reservation.status === 'waiting' ? 'bg-[hsl(var(--chart-1))]' :
-                            reservation.status === 'washing' ? 'bg-[hsl(var(--chart-2))]' :
-                              reservation.status === 'ready' ? 'bg-[hsl(var(--chart-3))]' :
-                                reservation.status === 'finished' ? 'bg-[hsl(var(--chart-4))]' : 'bg-gray-400'}
-                          `}>
-                          {reservation.status === 'waiting' ? 'در انتظار' :
-                            reservation.status === 'washing' ? 'در حال شستشو' :
-                              reservation.status === 'ready' ? 'آماده' :
-                                reservation.status === 'finished' ? 'تحویل داده شده' : reservation.status}
-                        </div>
-                        <Link href={`/admin/reservations/${reservation.id}`}>
-                          <Button variant="default" size="sm">مدیریت</Button>
-                        </Link>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="text-center p-8 text-muted-foreground">
+                  هیچ رزروی یافت نشد
+                </div>
+              )}
               <div className="text-center mt-4">
-                <Link href="/admin/reservations">
+                <Link href={isDormitoryAdmin ? `/admin/reservations?dormitory=${adminDormitory}` : "/admin/reservations"}>
                   <Button variant="outline">مشاهده همه رزروها</Button>
                 </Link>
               </div>
@@ -362,66 +380,68 @@ export default function AdminDashboard() {
           )}
         </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle dir='rtl'>رزروها بر اساس خوابگاه</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[300px]">
-                {isLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <Skeleton className="h-[250px] w-full" />
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={dormitoryData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {dormitoryData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={DORMITORY_COLORS[index % DORMITORY_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Legend />
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
+        {isMainAdmin && (
+          <TabsContent value="analytics" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle dir='rtl'>رزروها بر اساس خوابگاه</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[300px]">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Skeleton className="h-[250px] w-full" />
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={dormitoryData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {dormitoryData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={DORMITORY_COLORS[index % DORMITORY_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Legend />
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle dir='rtl'>توزیع وضعیت رزروها</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[300px]">
-                {isLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <Skeleton className="h-[250px] w-full" />
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={statusData} layout="vertical" margin={{ top: 10, right: 10, left: 30, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                      <XAxis type="number" />
-                      <YAxis type="category" dataKey="name" />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+              <Card>
+                <CardHeader>
+                  <CardTitle dir='rtl'>توزیع وضعیت رزروها</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[300px]">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Skeleton className="h-[250px] w-full" />
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={statusData} layout="vertical" margin={{ top: 10, right: 10, left: 30, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                        <XAxis type="number" />
+                        <YAxis type="category" dataKey="name" />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="hsl(var(--chart-washing))" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

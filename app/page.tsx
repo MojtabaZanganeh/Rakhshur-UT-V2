@@ -2,6 +2,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { CalendarClock, ClipboardList, CreditCard, WashingMachine } from 'lucide-react';
 
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('fa-IR', {
+    year: 'numeric',
+  }).format(date);
+};
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
@@ -68,10 +75,11 @@ export default function Home() {
         </div>
       </main>
 
-      <footer className="bg-gray-50 dark:bg-gray-900 py-8">
+      <footer className="bg-gray-50 dark:bg-gray-900 py-5">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <p className="text-gray-600 dark:text-gray-400">© {new Date().getFullYear()} سامانه رزرو لباسشویی. تمامی حقوق محفوظ است.</p>
+            <p className="text-gray-600 dark:text-gray-400 mb-1">© {formatDate(new Date().toString())} سامانه رزرو لباسشویی. تمامی حقوق محفوظ است.</p>
+            <a href='https://mojtaba-zanganeh.ir/' className="text-blue-600 dark:text-blue-400">توسعه داده شده توسط: مجتبی زنگنه</a>
           </div>
         </div>
       </footer>

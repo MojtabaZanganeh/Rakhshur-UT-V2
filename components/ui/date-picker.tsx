@@ -3,11 +3,13 @@ import DatePicker from 'react-multi-date-picker';
 import persian from 'react-date-object/calendars/persian';
 import persian_fa from 'react-date-object/locales/persian_fa';
 import { AlertCircle, Calendar, CalendarDays } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface JalaliDatePickerProps {
   selected: string | null;
   onChange: (date: string) => void;
   label?: string;
+  mapDays?: number[];
   className?: string;
   error?: string;
 }
@@ -20,6 +22,7 @@ const JalaliDatePicker: React.FC<JalaliDatePickerProps> = ({
   selected,
   onChange,
   label,
+  mapDays,
   className,
   error
 }) => {
@@ -48,7 +51,7 @@ const JalaliDatePicker: React.FC<JalaliDatePickerProps> = ({
         </label>
       )}
       <div className="relative">
-        <Calendar className="absolute right-3 top-2 text-gray-400" />
+        <Calendar className="absolute right-3 top-3 text-gray-400" />
         <DatePicker
           value={selected || ''}
           onChange={(date: any) => {
@@ -63,13 +66,25 @@ const JalaliDatePicker: React.FC<JalaliDatePickerProps> = ({
             let props: DayProps = {};
             let isWeekend = date.weekDay.index === 6;
             if (isWeekend) props.className = "highlight highlight-red";
+
+            if (mapDays) {
+              let activeDays = mapDays.includes(date.dayOfYear)
+  
+              if (!activeDays) return {
+                disabled: true,
+                style: { color: "#ccc" },
+                onClick: () => toast.error('هیچ نوبتی در این روز ثبت نشده است')
+              }
+            }
+
             return props;
           }}
+          placeholder='انتخاب تاریخ'
           calendar={persian}
           locale={persian_fa}
           format="YYYY/MM/DD"
           editable={false}
-          inputClass={`w-full pr-10 p-3 border rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all 
+          inputClass={className ? className : `w-full pr-10 p-3 border rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all 
             ${error ? "border-red-500" : "border-gray-200 dark:border-gray-600"}`}
           minDate={today}
           containerStyle={{

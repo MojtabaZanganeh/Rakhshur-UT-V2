@@ -1,27 +1,31 @@
 import { Dormitory } from "./user";
 
-export type ReservationStatus = "waiting" | "washing" | "ready";
+export type ReservationStatus = "pending" | "washing" | "ready" | "finished" | "cancelled";
 
 export interface TimeSlot {
   id: string;
-  startTime: string | Date;
-  endTime: string | Date;
-  isActive?: boolean;
-  isCustom?: boolean;
+  date?: string;
+  start_time: string | Date;
+  end_time: string | Date;
+  is_active?: boolean;
+  is_custom?: boolean;
   capacity?: number;
+  capacity_left?: number;
   dormitory?: Dormitory;
 }
 
 export interface ValidationErrors {
-  startTime?: string;
-  endTime?: string;
+  start_time?: string;
+  end_time?: string;
   [key: string]: string | undefined;
 }
 
 export type Reservation = {
   id: string;
-  userId: string;
-  timeSlots: TimeSlot[];
+  user_id: string;
+  user_first_name: string;
+  user_last_name: string;
+  timeSlots: TimeSlot;
   status: ReservationStatus;
   createdAt: string;
   updatedAt: string;

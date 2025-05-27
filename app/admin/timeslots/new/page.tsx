@@ -14,8 +14,8 @@ export default function AddTimeSlotPage() {
   const [selectedToDate, setSelectedToDate] = useState('');
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [selectedSpecificDate, setSelectedSpecificDate] = useState('');
-  const [startTime, setStartTime] = useState(new Date(2025, 0, 1, 14, 0));
-  const [endTime, setEndTime] = useState(new Date(2025, 0, 1, 18, 0));
+  const [start_time, setStartTime] = useState(new Date(2025, 0, 1, 14, 0));
+  const [end_time, setEndTime] = useState(new Date(2025, 0, 1, 18, 0));
   const [defaultCapacity, setDefaultCapacity] = useState(1);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [isWeeklyMode, setIsWeeklyMode] = useState(true);
@@ -34,23 +34,23 @@ export default function AddTimeSlotPage() {
 
   const validateTimeRange = (): boolean => {
     const newErrors: ValidationErrors = {};
-    const startMinutes = startTime.getHours() * 60 + startTime.getMinutes();
-    const endMinutes = endTime.getHours() * 60 + endTime.getMinutes();
+    const startMinutes = start_time.getHours() * 60 + start_time.getMinutes();
+    const endMinutes = end_time.getHours() * 60 + end_time.getMinutes();
     const difference = endMinutes - startMinutes;
 
     if (difference <= 0) {
-      newErrors.endTime = 'زمان پایان باید بعد از زمان شروع باشد';
+      newErrors.end_time = 'زمان پایان باید بعد از زمان شروع باشد';
     } else if (difference < 30) {
-      newErrors.endTime = 'حداقل فاصله زمانی ۳۰ دقیقه باید باشد';
+      newErrors.end_time = 'حداقل فاصله زمانی ۳۰ دقیقه باید باشد';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const validateCustomSlot = (startTime: Date, endTime: Date): string | null => {
-    const startMinutes = startTime.getHours() * 60 + startTime.getMinutes();
-    const endMinutes = endTime.getHours() * 60 + endTime.getMinutes();
+  const validateCustomSlot = (start_time: Date, end_time: Date): string | null => {
+    const startMinutes = start_time.getHours() * 60 + start_time.getMinutes();
+    const endMinutes = end_time.getHours() * 60 + end_time.getMinutes();
     const difference = endMinutes - startMinutes;
 
     if (difference <= 0) {
@@ -66,8 +66,8 @@ export default function AddTimeSlotPage() {
     if (!validateTimeRange()) return;
 
     const slots: TimeSlot[] = [];
-    const start = startTime.getHours() * 60 + startTime.getMinutes();
-    const end = endTime.getHours() * 60 + endTime.getMinutes();
+    const start = start_time.getHours() * 60 + start_time.getMinutes();
+    const end = end_time.getHours() * 60 + end_time.getMinutes();
 
     for (let minutes = start; minutes < end; minutes += 30) {
       const startHour = Math.floor(minutes / 60);
@@ -75,15 +75,15 @@ export default function AddTimeSlotPage() {
       const endHour = Math.floor((minutes + 30) / 60);
       const endMin = (minutes + 30) % 60;
 
-      const startTimeStr = `${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`;
-      const endTimeStr = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`;
+      const start_timeStr = `${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`;
+      const end_timeStr = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`;
 
       slots.push({
         id: `slot-${minutes}`,
-        startTime: startTimeStr,
-        endTime: endTimeStr,
-        isActive: true,
-        isCustom: false,
+        start_time: start_timeStr,
+        end_time: end_timeStr,
+        is_active: true,
+        is_custom: false,
         capacity: defaultCapacity
       });
     }
@@ -94,7 +94,7 @@ export default function AddTimeSlotPage() {
 
   const toggleSlot = (id: string) => {
     setTimeSlots(prev => prev.map(slot =>
-      slot.id === id ? { ...slot, isActive: !slot.isActive } : slot
+      slot.id === id ? { ...slot, is_active: !slot.is_active } : slot
     ));
   };
 
@@ -105,32 +105,32 @@ export default function AddTimeSlotPage() {
   const addCustomSlot = () => {
     const newSlot: TimeSlot = {
       id: `custom-${Date.now()}`,
-      startTime: new Date(2025, 0, 1, 9, 0),
-      endTime: new Date(2025, 0, 1, 9, 30),
-      isActive: true,
-      isCustom: true,
+      start_time: new Date(2025, 0, 1, 9, 0),
+      end_time: new Date(2025, 0, 1, 9, 30),
+      is_active: true,
+      is_custom: true,
       capacity: defaultCapacity
     }
     setTimeSlots(prev => [...prev, newSlot]);
   };
 
-  const updateCustomSlot = (id: string, field: 'startTime' | 'endTime' | 'capacity', value: Date | number) => {
+  const updateCustomSlot = (id: string, field: 'start_time' | 'end_time' | 'capacity', value: Date | number) => {
     setTimeSlots(prev => prev.map(slot => {
       if (slot.id === id) {
         const updatedSlot = { ...slot, [field]: value };
 
-        if (field === 'startTime' || field === 'endTime') {
-          const startTime = field === 'startTime' ? value as Date : slot.startTime as Date;
-          const endTime = field === 'endTime' ? value as Date : slot.endTime as Date;
+        if (field === 'start_time' || field === 'end_time') {
+          const start_time = field === 'start_time' ? value as Date : slot.start_time as Date;
+          const end_time = field === 'end_time' ? value as Date : slot.end_time as Date;
 
-          const validationError = validateCustomSlot(startTime, endTime);
+          const validationError = validateCustomSlot(start_time, end_time);
           if (validationError) {
             setErrors(prev => ({ ...prev, [`${id}-${field}`]: validationError }));
           } else {
             setErrors(prev => {
               const newErrors = { ...prev };
-              delete newErrors[`${id}-startTime`];
-              delete newErrors[`${id}-endTime`];
+              delete newErrors[`${id}-start_time`];
+              delete newErrors[`${id}-end_time`];
               return newErrors;
             })
           }
@@ -166,13 +166,13 @@ export default function AddTimeSlotPage() {
           selectedDays: selectedDates
         },
         timeSlots: timeSlots
-          .filter(slot => slot.isActive)
+          .filter(slot => slot.is_active)
           .map(slot => ({
             id: slot.id,
-            startTime: formatTimeForDisplay(slot.startTime),
-            endTime: formatTimeForDisplay(slot.endTime),
+            start_time: formatTimeForDisplay(slot.start_time),
+            end_time: formatTimeForDisplay(slot.end_time),
             capacity: slot.capacity,
-            isCustom: slot.isCustom
+            is_custom: slot.is_custom
           })),
         createdAt: new Date().toISOString()
       };
@@ -182,17 +182,15 @@ export default function AddTimeSlotPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({slotsData}),
+        body: JSON.stringify({ slotsData }),
         credentials: 'include'
       });
 
       const data = await response.json();
 
-      if (response.status === 200) {
-        if (data.success) {
-          toast.success('نوبت ها با موفقیت ثبت شد');
-          setCurrentStep(5);
-        }
+      if (response.status === 200 && data.success) {
+        toast.success('نوبت ها با موفقیت ثبت شد');
+        setCurrentStep(5);
       }
       else {
         throw new Error(data.message || 'خطا در ذخیره نوبت‌ها');
@@ -290,7 +288,7 @@ export default function AddTimeSlotPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
+        <div className="flex items-center gap-12 mb-6">
           <JalaliDatePicker
             selected={selectedSpecificDate}
             onChange={setSelectedSpecificDate}
@@ -331,17 +329,17 @@ export default function AddTimeSlotPage() {
             <span>ساعت شروع</span>
           </Label>
           <TimePicker
-            value={startTime}
+            value={start_time}
             onChange={(time: Date) => {
               setStartTime(time)
-              setErrors(prev => ({ ...prev, startTime: '', endTime: '' }))
+              setErrors(prev => ({ ...prev, start_time: '', end_time: '' }))
             }}
             className="w-full"
           />
-          {errors.startTime && (
+          {errors.start_time && (
             <p className="mt-1 text-sm text-red-600 text-right flex items-center gap-1">
               <AlertCircle className="w-4 h-4" />
-              {errors.startTime}
+              {errors.start_time}
             </p>
           )}
         </div>
@@ -351,17 +349,17 @@ export default function AddTimeSlotPage() {
             <span>ساعت پایان</span>
           </Label>
           <TimePicker
-            value={endTime}
+            value={end_time}
             onChange={(time: Date) => {
               setEndTime(time)
-              setErrors(prev => ({ ...prev, endTime: '' }))
+              setErrors(prev => ({ ...prev, end_time: '' }))
             }}
             className="w-full"
           />
-          {errors.endTime && (
+          {errors.end_time && (
             <p className="mt-1 text-sm text-red-600 text-right flex items-center gap-1">
               <AlertCircle className="w-4 h-4" />
-              {errors.endTime}
+              {errors.end_time}
             </p>
           )}
         </div>
@@ -422,7 +420,7 @@ export default function AddTimeSlotPage() {
         {timeSlots.map((slot) => (
           <div
             key={slot.id}
-            className={`flex items-center justify-between p-4 border rounded-xl transition-all ${slot.isActive
+            className={`flex items-center justify-between p-4 border rounded-xl transition-all ${slot.is_active
               ? 'border-green-400 bg-green-50 dark:bg-green-900/20'
               : 'border-red-300 bg-red-50 dark:bg-red-900/20'
               }`}
@@ -430,29 +428,29 @@ export default function AddTimeSlotPage() {
             <div className="flex items-center gap-4 flex-1">
               <button
                 onClick={() => toggleSlot(slot.id)}
-                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${slot.isActive
+                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${slot.is_active
                   ? 'bg-green-500 hover:bg-green-600 text-white'
                   : 'bg-red-500 hover:bg-red-600 text-white'
                   }`}
               >
-                {slot.isActive ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                {slot.is_active ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
               </button>
 
               <div className="flex-1">
-                {slot.isCustom ? (
+                {slot.is_custom ? (
                   <div className="flex flex-col gap-3">
                     <div className="flex flex-col sm:flex-row items-center gap-3">
                       <div className="w-full sm:flex-1">
                         <TimePicker
-                          value={slot.startTime as Date}
-                          onChange={(val: Date) => updateCustomSlot(slot.id, 'startTime', val)}
+                          value={slot.start_time as Date}
+                          onChange={(val: Date) => updateCustomSlot(slot.id, 'start_time', val)}
                           className="w-full text-sm sm:text-base"
                           label="شروع"
                         />
-                        {errors[`${slot.id}-startTime`] && (
+                        {errors[`${slot.id}-start_time`] && (
                           <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                             <AlertCircle className="w-3 h-3" />
-                            {errors[`${slot.id}-startTime`]}
+                            {errors[`${slot.id}-start_time`]}
                           </p>
                         )}
                       </div>
@@ -461,15 +459,15 @@ export default function AddTimeSlotPage() {
 
                       <div className="w-full sm:flex-1">
                         <TimePicker
-                          value={slot.endTime as Date}
-                          onChange={(val: Date) => updateCustomSlot(slot.id, 'endTime', val)}
+                          value={slot.end_time as Date}
+                          onChange={(val: Date) => updateCustomSlot(slot.id, 'end_time', val)}
                           className="w-full text-sm sm:text-base"
                           label="پایان"
                         />
-                        {errors[`${slot.id}-endTime`] && (
+                        {errors[`${slot.id}-end_time`] && (
                           <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                             <AlertCircle className="w-3 h-3" />
-                            {errors[`${slot.id}-endTime`]}
+                            {errors[`${slot.id}-end_time`]}
                           </p>
                         )}
                       </div>
@@ -478,7 +476,7 @@ export default function AddTimeSlotPage() {
                 ) : (
                   <div className="flex items-center justify-between">
                     <span className="font-medium dark:text-gray-200 text-sm sm:text-base">
-                      {formatTimeForDisplay(slot.startTime)} - {formatTimeForDisplay(slot.endTime)}
+                      {formatTimeForDisplay(slot.start_time)} - {formatTimeForDisplay(slot.end_time)}
                     </span>
                   </div>
                 )}
@@ -498,7 +496,7 @@ export default function AddTimeSlotPage() {
                 />
               </div>
 
-              {slot.isCustom && (
+              {slot.is_custom && (
                 <button
                   onClick={() => deleteCustomSlot(slot.id)}
                   className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all"
@@ -566,7 +564,7 @@ export default function AddTimeSlotPage() {
             نوبت‌های فعال:
           </h4>
           <div className="space-y-3">
-            {timeSlots.filter(slot => slot.isActive).map(slot => (
+            {timeSlots.filter(slot => slot.is_active).map(slot => (
               <div
                 key={slot.id}
                 className="flex justify-between items-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-600"
@@ -575,14 +573,14 @@ export default function AddTimeSlotPage() {
                   <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full">
                     ظرفیت: {slot.capacity} نفر
                   </span>
-                  {slot.isCustom && (
+                  {slot.is_custom && (
                     <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full">
                       سفارشی
                     </span>
                   )}
                 </div>
                 <span className="font-medium dark:text-gray-200">
-                  {formatTimeForDisplay(slot.startTime)} - {formatTimeForDisplay(slot.endTime)}
+                  {formatTimeForDisplay(slot.start_time)} - {formatTimeForDisplay(slot.end_time)}
                 </span>
               </div>
             ))}
