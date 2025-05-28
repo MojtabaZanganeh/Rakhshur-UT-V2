@@ -98,7 +98,7 @@ export default function Dashboard() {
             خوش آمدید، {user?.first_name} {user?.last_name}
           </p>
         </div>
-        <Link href="/reservations/new">
+        <Link href="/dashboard/reservations/new">
           <Button>
             <Calendar className="ml-2 h-4 w-4" />
             رزرو جدید
@@ -210,7 +210,7 @@ export default function Dashboard() {
               <CardDescription className="text-center mb-4">
                 شما هنوز هیچ رزرو لباسشویی انجام نداده‌اید. برای شروع، اولین رزرو خود را ایجاد کنید.
               </CardDescription>
-              <Link href="/reservations/new">
+              <Link href="/dashboard/reservations/new">
                 <Button>ایجاد رزرو</Button>
               </Link>
             </CardContent>

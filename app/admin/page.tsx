@@ -373,7 +373,7 @@ export default function AdminDashboard() {
                               {statusStyles[reservation.status].icon}
                             </div>
                           </Badge>
-                          <Link href={`/admin/reservations/${reservation.id}`}>
+                          <Link href={`/admin/reservations/`}>
                             <Button variant="default" size="sm">مدیریت</Button>
                           </Link>
                         </div>
