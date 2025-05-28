@@ -80,6 +80,7 @@ export default function Home() {
           <div className="text-center">
             <p className="text-gray-600 dark:text-gray-400 mb-1">© {formatDate(new Date().toString())} سامانه رزرو لباسشویی. تمامی حقوق محفوظ است.</p>
             <a href='https://mojtaba-zanganeh.ir/' className="text-blue-600 dark:text-blue-400">توسعه داده شده توسط: مجتبی زنگنه</a>
+            <p className="text-emerald-600 dark:text-emerald-400">با حمایت وویس کلاس</p>
           </div>
         </div>
       </footer>

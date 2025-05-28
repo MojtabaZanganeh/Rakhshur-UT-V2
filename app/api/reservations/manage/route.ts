@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { safeJsonFetch } from "@/lib/config";
 import { User } from "@/types/user";
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     
+    const body = await request.json();
+    const { reservation_id, status } = body;
+
+    if (!reservation_id || !status) {
+      return NextResponse.json(
+        { message: "خطا در دریافت اطلاعات رزرو" },
+        { status: 400 }
+      );
+    }
+
     const cookieHeader = request.headers.get("cookie");
     
     if (!cookieHeader) {
@@ -25,18 +35,16 @@ export async function GET(request: NextRequest) {
 
     const token = tokenCookie.split("=")[1];
 
-    const { searchParams } = new URL(request.url);
-
     const response = await safeJsonFetch<{ user: User; message: string }>(
-      `/reservations/recent?${searchParams}`,
-      "GET",
-      undefined,
+      "/reservations/manage",
+      "POST",
+      {reservation_id, status},
       token
     );
 
     if (!response || response.message == "") {
       return NextResponse.json(
-        { message: "دریافت رزروهای اخیر با خطا مواجه شد" },
+        { message: "ویرایش رزرو با خطا مواجه شد" },
         { status: 401 }
       );
     }
@@ -45,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     return nextResponse;
   } catch (error) {
-    console.error("خطا در دریافت رزروهای اخیر:", error);
+    console.error("خطا در ویرایش رزرو:", error);
     return NextResponse.json({ message: "خطای سرور" }, { status: 500 });
   }
 }

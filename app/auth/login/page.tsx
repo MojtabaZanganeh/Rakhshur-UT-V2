@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useAuth } from '@/lib/auth-provider';
-import { WashingMachine } from 'lucide-react';
+import { ArrowRight, Loader2, WashingMachine } from 'lucide-react';
 
 const loginSchema = z.object({
   phone: z.string().min(10, { message: 'شماره تلفن باید حداقل 10 رقم باشد' }),
@@ -52,7 +52,7 @@ export default function LoginPage() {
 
       if (response) {
         setPhoneNumber(values.phone);
-        
+
         verifyForm.reset();
         setStep('verify');
       }
@@ -122,13 +122,15 @@ export default function LoginPage() {
             </Form>
           ) : (
             <Form {...verifyForm}>
-              <form onSubmit={verifyForm.handleSubmit(onSubmitVerify)} className="space-y-4">
+              <form onSubmit={verifyForm.handleSubmit(onSubmitVerify)} className="space-y-6">
                 <FormField
                   control={verifyForm.control}
                   name="code"
                   render={() => (
                     <FormItem className="mx-auto text-center">
-                      <FormLabel>کد تایید</FormLabel>
+                      <FormLabel className="block text-gray-800 dark:text-gray-200 font-medium mb-4 text-lg">
+                        کد تأیید را وارد کنید
+                      </FormLabel>
                       <FormControl>
                         <InputOTP
                           maxLength={5}
@@ -136,29 +138,51 @@ export default function LoginPage() {
                           onChange={handleOTPChange}
                           containerClassName="justify-center"
                         >
-                          <InputOTPGroup className="gap-4 justify-between">
-                            <InputOTPSlot index={4} />
-                            <InputOTPSlot index={3} />
-                            <InputOTPSlot index={2} />
-                            <InputOTPSlot index={1} />
-                            <InputOTPSlot index={0} />
+                          <InputOTPGroup className="gap-2 sm:gap-4">
+                            {[4, 3, 2, 1, 0].map((index) => (
+                              <InputOTPSlot
+                                key={index}
+                                index={index}
+                                className={`
+                                  w-12 h-12 text-xl font-bold
+                                  border-2 border-gray-300 dark:border-gray-500
+                                  bg-white dark:bg-gray-800
+                                  text-gray-900 dark:text-white
+                                  focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30
+                                  transition-all
+                                `}
+                              />
+                            ))}
                           </InputOTPGroup>
                         </InputOTP>
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-600 dark:text-red-400 mt-3 text-sm" />
                     </FormItem>
                   )}
                 />
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className={`
+                    w-full py-3 text-lg font-medium
+                    bg-blue-600 hover:bg-blue-700 text-white
+                    rounded-xl
+                    transition-all
+                    ${(isSubmitting || verifyForm.watch('code').length !== 5) ? 'opacity-70 cursor-not-allowed' : ''}
+                  `}
                   disabled={isSubmitting || verifyForm.watch('code').length !== 5}
                 >
-                  {isSubmitting ? 'در حال تایید...' : 'ورود'}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      در حال تأیید...
+                    </>
+                  ) : (
+                    'ورود به حساب'
+                  )}
                 </Button>
 
-                <div className="text-center">
+                <div className="text-center pt-2">
                   <Button
                     variant="link"
                     onClick={() => {
@@ -166,8 +190,9 @@ export default function LoginPage() {
                       verifyForm.reset();
                       setStep('phone');
                     }}
-                    className="p-0 h-auto"
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium"
                   >
+                    <ArrowRight className="w-4 h-4 ml-1" />
                     استفاده از شماره تلفن دیگر
                   </Button>
                 </div>

@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useAuth } from '@/lib/auth-provider';
-import { WashingMachine } from 'lucide-react';
+import { Loader2, WashingMachine } from 'lucide-react';
 
 const registerSchema = z.object({
   first_name: z.string().min(2, { message: 'نام باید حداقل 2 کاراکتر باشد' }),
@@ -61,7 +61,7 @@ export default function RegisterPage() {
 
       if (response) {
         setUserData(values);
-  
+
         verifyForm.reset();
         setStep('verify');
       }
@@ -213,7 +213,9 @@ export default function RegisterPage() {
                   name="code"
                   render={() => (
                     <FormItem className="mx-auto text-center">
-                      <FormLabel>کد تأیید</FormLabel>
+                      <FormLabel className="text-gray-800 dark:text-gray-200 font-medium mb-3 block">
+                        کد تأیید
+                      </FormLabel>
                       <FormControl>
                         <InputOTP
                           maxLength={5}
@@ -221,26 +223,40 @@ export default function RegisterPage() {
                           onChange={handleOTPChange}
                           containerClassName="justify-center"
                         >
-                          <InputOTPGroup className="gap-4 justify-between">
-                            <InputOTPSlot className='dark:bg-white dark:text-black' index={4} />
-                            <InputOTPSlot className='dark:bg-white dark:text-black' index={3} />
-                            <InputOTPSlot className='dark:bg-white dark:text-black' index={2} />
-                            <InputOTPSlot className='dark:bg-white dark:text-black' index={1} />
-                            <InputOTPSlot className='dark:bg-white dark:text-black' index={0} />
+                          <InputOTPGroup className="gap-2 sm:gap-4">
+                            {[4, 3, 2, 1, 0].map((index) => (
+                              <InputOTPSlot
+                                key={index}
+                                index={index}
+                                className={`
+                                  w-12 h-12 text-xl font-bold
+                                  border-2 border-gray-300 dark:border-gray-500
+                                  bg-white dark:bg-gray-800
+                                  text-gray-900 dark:text-white
+                                  focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30
+                                  transition-all
+                                `}
+                              />
+                            ))}
                           </InputOTPGroup>
                         </InputOTP>
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-600 dark:text-red-400 mt-2" />
                     </FormItem>
                   )}
                 />
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
                   disabled={isSubmitting || verifyForm.watch('code').length !== 5}
                 >
-                  {isSubmitting ? 'در حال تأیید...' : 'تکمیل ثبت‌نام'}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      در حال تأیید...
+                    </>
+                  ) : 'تکمیل ثبت‌نام'}
                 </Button>
 
                 <div className="text-center">
@@ -251,7 +267,7 @@ export default function RegisterPage() {
                       verifyForm.reset();
                       setStep('register');
                     }}
-                    className="p-0 h-auto"
+                    className="p-0 h-auto text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     بازگشت به فرم ثبت‌نام
                   </Button>

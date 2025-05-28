@@ -42,15 +42,15 @@ export function Header({ variant = 'user' }: HeaderProps) {
 
   const userNavigation = [
     { name: 'داشبورد', href: '/dashboard', icon: <Calendar className="ml-2 h-4 w-4" /> },
-    { name: 'رزروها', href: '/reservations', icon: <Clock className="ml-2 h-4 w-4" /> },
-    { name: 'پروفایل', href: '/profile', icon: <User className="ml-2 h-4 w-4" /> },
+    { name: 'رزروها', href: '/dashboard/reservations', icon: <Clock className="ml-2 h-4 w-4" /> },
+    { name: 'پروفایل', href: '/dashboard/profile', icon: <User className="ml-2 h-4 w-4" /> },
   ];
 
   const adminNavigation = [
     { name: 'داشبورد', href: '/admin', icon: <Calendar className="ml-2 h-4 w-4" /> },
     { name: 'نوبت‌ها', href: '/admin/timeslots', icon: <Clock className="ml-2 h-4 w-4" /> },
     { name: 'رزروها', href: '/admin/reservations', icon: <Calendar className="ml-2 h-4 w-4" /> },
-    { name: 'تنظیمات', href: '/admin/settings', icon: <Settings className="ml-2 h-4 w-4" /> },
+    // { name: 'تنظیمات', href: '/admin/settings', icon: <Settings className="ml-2 h-4 w-4" /> },
   ];
 
   const navigation = variant === 'admin' ? adminNavigation : userNavigation;
@@ -72,7 +72,7 @@ export function Header({ variant = 'user' }: HeaderProps) {
           </div>
 
           {/* Desktop navigation */}
-          <nav className="hidden md:flex items-center space-x-4">
+          <nav className="hidden md:flex items-center space-x-6">
             {isAuthenticated && (
               <>
                 {navigation.map((item) => (
@@ -88,7 +88,8 @@ export function Header({ variant = 'user' }: HeaderProps) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                      <div className="flex p-1 mr-6 h-8 items-center justify-center rounded-full bg-muted">
+                        {user?.first_name} {user?.last_name}
                         <User className="h-4 w-4" />
                       </div>
                     </Button>
@@ -98,9 +99,9 @@ export function Header({ variant = 'user' }: HeaderProps) {
                       {user?.first_name} {user?.last_name}
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
+                    {/* <DropdownMenuItem asChild>
                       <Link href="/profile">پروفایل</Link>
-                    </DropdownMenuItem>
+                    </DropdownMenuItem> */}
                     <DropdownMenuItem onClick={handleLogout}>
                       <LogOut className="ml-2 h-4 w-4" />
                       <span>خروج</span>

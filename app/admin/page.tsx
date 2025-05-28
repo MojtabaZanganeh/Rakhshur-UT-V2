@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Clock, Users, PlusCircle, Building } from 'lucide-react';
+import { Calendar, Users, PlusCircle, Building, Clock, WashingMachine, AlarmClockCheck, BookmarkX, BookmarkCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth-provider';
 import { fetchApi } from '@/lib/api';
 import { Reservation } from '@/types/reservation';
@@ -24,6 +24,7 @@ import {
   Legend
 } from 'recharts';
 import toast from 'react-hot-toast';
+import { Badge } from '@/components/ui/badge';
 
 type AdminStats = {
   totalReservations: number;
@@ -45,9 +46,37 @@ type AdminStats = {
   }[];
 };
 
-const COLORS = ['hsl(var(--chart-pending))', 'hsl(var(--chart-washing))', 'hsl(var(--chart-ready))', 'hsl(var(--chart-finished))'];
+const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))','hsl(var(--chart-5))'];
 
-const DORMITORY_COLORS = ['hsl(var(--chart-cancelled))', 'hsl(var(--chart-dormitory-1))'];
+const DORMITORY_COLORS = ['hsl(var(--chart-6))', 'hsl(var(--chart-7))'];
+
+const statusStyles = {
+  pending: {
+    color: 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100',
+    icon: <Clock className="h-4 w-4 mr-1" />,
+    label: 'در انتظار'
+  },
+  washing: {
+    color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100',
+    icon: <WashingMachine className="h-4 w-4 mr-1" />,
+    label: 'در حال شستشو'
+  },
+  ready: {
+    color: 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100',
+    icon: <AlarmClockCheck className="h-4 w-4 mr-1" />,
+    label: 'آماده تحویل'
+  },
+  finished: {
+    color: 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100',
+    icon: <BookmarkCheck className="h-4 w-4 mr-1" />,
+    label: 'تحویل داده شده'
+  },
+  cancelled: {
+    color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
+    icon: <BookmarkX className="h-4 w-4 mr-1" />,
+    label: 'لغو شده'
+  },
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -57,7 +86,6 @@ export default function AdminDashboard() {
   const [recentReservations, setRecentReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // تشخیص نوع ادمین
   const isMainAdmin = user?.role === 'admin';
   const isDormitoryAdmin = user?.role.startsWith('admin-dormitory');
   const adminDormitory = isDormitoryAdmin ? user?.role.replace('admin-', '') : null;
@@ -105,14 +133,7 @@ export default function AdminDashboard() {
         const data = await response.json();
 
         if (response.status === 200 && data.success) {
-
-          if (isDormitoryAdmin && adminDormitory) {
-            setRecentReservations(data.recent.filter(
-              (reservation: Reservation) => reservation.timeSlots.dormitory === adminDormitory
-            ));
-          } else {
-            setRecentReservations(data.recent);
-          }
+          setRecentReservations(data.recent.list);
         }
         else {
           throw new Error(data.message);
@@ -186,7 +207,7 @@ export default function AdminDashboard() {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 text-orange-100">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -263,7 +284,7 @@ export default function AdminDashboard() {
         }
 
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mb-8">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-8 mb-8">
             <Card className="col-span-4">
               <CardHeader>
                 <CardTitle dir='rtl'>رزروهای هفتگی</CardTitle>
@@ -280,14 +301,14 @@ export default function AdminDashboard() {
                       <XAxis dataKey="day" />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="count" fill="hsl(var(--chart-washing))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="count" fill="hsl(var(--chart-4))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="col-span-3">
+            <Card className="col-span-4">
               <CardHeader>
                 <CardTitle dir='rtl'>وضعیت رزروها</CardTitle>
               </CardHeader>
@@ -332,32 +353,26 @@ export default function AdminDashboard() {
           ) : (
             <div className="space-y-4" dir='rtl'>
               {recentReservations.length > 0 ? (
-                recentReservations.map((reservation) => (
+                recentReservations.slice(0, 5).map((reservation) => (
                   <Card key={reservation.id}>
                     <CardContent className="p-4">
                       <div className="flex flex-col sm:flex-row justify-between gap-4">
                         <div>
                           <div className="font-medium">
-                            رزرو #{reservation.id}
+                            {reservation.user_first_name} {reservation.user_last_name}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             {formatDate(reservation.timeSlots.date || '')} - {reservation.timeSlots.start_time.toString()} • {reservation.timeSlots.dormitory === 'dormitory-1' ? 'خوابگاه ۱' : 'خوابگاه ۲'}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className={`text-sm capitalize px-2 py-1 rounded-full text-white dark:text-white
-                            ${reservation.status === 'pending' ? 'bg-[hsl(var(--chart-pending))]' :
-                              reservation.status === 'washing' ? 'bg-[hsl(var(--chart-washing))]' :
-                                reservation.status === 'ready' ? 'bg-[hsl(var(--chart-ready))]' :
-                                  reservation.status === 'finished' ? 'bg-[hsl(var(--chart-finished))]' :
-                                    reservation.status === 'cancelled' ? 'bg-[hsl(var(--chart-finished))]' : 'bg-gray-400'}
-                            `}>
-                            {reservation.status === 'pending' ? 'در انتظار' :
-                              reservation.status === 'washing' ? 'در حال شستشو' :
-                                reservation.status === 'ready' ? 'آماده' :
-                                  reservation.status === 'finished' ? 'تحویل داده شده' :
-                                    reservation.status === 'cancelled' ? 'لغو شده' : reservation.status}
-                          </div>
+                          <Badge variant="outline" className={statusStyles[reservation.status].color}>
+                            <div className="flex items-center">
+                              {statusStyles[reservation.status].label}
+                              &nbsp;
+                              {statusStyles[reservation.status].icon}
+                            </div>
+                          </Badge>
                           <Link href={`/admin/reservations/${reservation.id}`}>
                             <Button variant="default" size="sm">مدیریت</Button>
                           </Link>
@@ -371,11 +386,13 @@ export default function AdminDashboard() {
                   هیچ رزروی یافت نشد
                 </div>
               )}
-              <div className="text-center mt-4">
-                <Link href={isDormitoryAdmin ? `/admin/reservations?dormitory=${adminDormitory}` : "/admin/reservations"}>
-                  <Button variant="outline">مشاهده همه رزروها</Button>
-                </Link>
-              </div>
+              {recentReservations.length > 5 && (
+                <div className="text-center mt-4">
+                  <Link href="/admin/reservations">
+                    <Button variant="outline">مشاهده همه رزروها</Button>
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </TabsContent>
@@ -433,7 +450,7 @@ export default function AdminDashboard() {
                         <XAxis type="number" />
                         <YAxis type="category" dataKey="name" />
                         <Tooltip />
-                        <Bar dataKey="value" fill="hsl(var(--chart-washing))" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="value" fill="hsl(var(--chart-4))" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   )}

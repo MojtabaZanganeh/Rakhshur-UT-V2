@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { slot_id, start_time, end_time } = body;
 
-    if (!start_time || !end_time) {
+    if (!slot_id || !start_time || !end_time) {
       return NextResponse.json(
         { message: "خطا در دریافت اطلاعات نوبت" },
         { status: 400 }
