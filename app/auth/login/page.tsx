@@ -12,13 +12,22 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useAuth } from '@/lib/auth-provider';
 import { ArrowRight, Loader2, WashingMachine } from 'lucide-react';
+import { validateNumber } from '@/lib/input-validate';
 
 const loginSchema = z.object({
-  phone: z.string().min(10, { message: 'شماره تلفن باید حداقل 10 رقم باشد' }),
+  phone: z.string()
+    .length(11, { message: 'شماره تلفن باید 11 رقم باشد' })
+    .regex(/^\d+$/, {
+      message: 'شماره تلفن فقط شامل اعداد باشد'
+    }),
 });
 
 const verifySchema = z.object({
-  code: z.string().length(5, { message: 'کد تایید باید 5 رقم باشد' }),
+  code: z.string()
+    .length(5, { message: 'کد تأیید باید 5 کاراکتر باشد' })
+    .regex(/^\d+$/, {
+      message: 'کد تأیید فقط شامل اعداد باشد'
+    }),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -104,7 +113,23 @@ export default function LoginPage() {
                     <FormItem>
                       <FormLabel>شماره تلفن</FormLabel>
                       <FormControl>
-                        <Input placeholder="09123456789" {...field} />
+                        <Input
+                          placeholder="09123456789"
+                          {...field}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (validateNumber(value) && value.length <= 11) {
+                              field.onChange(e);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (
+                              ['e', 'E', '+', '-', '.'].includes(e.key)
+                            ) {
+                              e.preventDefault();
+                            }
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -135,7 +160,15 @@ export default function LoginPage() {
                         <InputOTP
                           maxLength={5}
                           value={verifyForm.watch('code')}
-                          onChange={handleOTPChange}
+                          onChange={(value) => {
+                            const numericValue = value.replace(/[^0-9]/g, '');
+                            handleOTPChange(numericValue);
+                          }}
+                          onKeyDown={(e) => {
+                            if (['e', 'E', '+', '-', '.', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
                           containerClassName="justify-center"
                         >
                           <InputOTPGroup className="gap-2 sm:gap-4">

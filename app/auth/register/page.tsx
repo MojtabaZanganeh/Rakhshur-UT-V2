@@ -13,17 +13,42 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useAuth } from '@/lib/auth-provider';
 import { Loader2, WashingMachine } from 'lucide-react';
+import { validateNumber, validatePersian } from '@/lib/input-validate';
 
 const registerSchema = z.object({
-  first_name: z.string().min(2, { message: 'نام باید حداقل 2 کاراکتر باشد' }),
-  last_name: z.string().min(2, { message: 'نام خانوادگی باید حداقل 2 کاراکتر باشد' }),
-  phone: z.string().min(10, { message: 'شماره تلفن باید حداقل 10 رقم باشد' }),
-  student_id: z.string().min(5, { message: 'شماره دانشجویی باید حداقل 5 کاراکتر باشد' }),
+  first_name: z.string()
+    .min(2, { message: 'نام باید حداقل 2 کاراکتر باشد' })
+    .regex(/^[\u0600-\u06FF\s]+$/, {
+      message: 'نام فقط شامل حروف فارسی باشد'
+    }),
+
+  last_name: z.string()
+    .min(2, { message: 'نام خانوادگی باید حداقل 2 کاراکتر باشد' })
+    .regex(/^[\u0600-\u06FF\s]+$/, {
+      message: 'نام خانوادگی فقط شامل حروف فارسی باشد'
+    }),
+
+  phone: z.string()
+    .length(11, { message: 'شماره تلفن باید 11 رقم باشد' })
+    .regex(/^\d+$/, {
+      message: 'شماره تلفن فقط شامل اعداد باشد'
+    }),
+
+  student_id: z.string()
+    .length(9, { message: 'کد دانشجویی باید 9 رقم باشد' })
+    .regex(/^\d+$/, {
+      message: 'کد دانشجویی فقط شامل اعداد باشد'
+    }),
+
   dormitory: z.enum(['dormitory-1', 'dormitory-2']),
 });
 
 const verifySchema = z.object({
-  code: z.string().length(5, { message: 'کد تایید باید 5 رقم باشد' }),
+  code: z.string()
+    .length(5, { message: 'کد تأیید باید 5 کاراکتر باشد' })
+    .regex(/^\d+$/, {
+      message: 'کد تأیید فقط شامل اعداد باشد'
+    }),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -122,7 +147,15 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>نام</FormLabel>
                         <FormControl>
-                          <Input placeholder="علی" {...field} />
+                          <Input
+                            placeholder="علی"
+                            {...field}
+                            onChange={(e) => {
+                              if (validatePersian(e.target.value)) {
+                                field.onChange(e);
+                              }
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -135,7 +168,15 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>نام خانوادگی</FormLabel>
                         <FormControl>
-                          <Input placeholder="محمدی" {...field} />
+                          <Input
+                            placeholder="محمدی"
+                            {...field}
+                            onChange={(e) => {
+                              if (validatePersian(e.target.value)) {
+                                field.onChange(e);
+                              }
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -150,7 +191,23 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>شماره تلفن</FormLabel>
                       <FormControl>
-                        <Input placeholder="09123456789" {...field} />
+                        <Input
+                          placeholder="09123456789"
+                          {...field}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (validateNumber(value) && value.length <= 11) {
+                              field.onChange(e);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (
+                              ['e', 'E', '+', '-', '.'].includes(e.key)
+                            ) {
+                              e.preventDefault();
+                            }
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -164,7 +221,24 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>شماره دانشجویی</FormLabel>
                       <FormControl>
-                        <Input placeholder="12345678" {...field} />
+                        <Input
+                          placeholder="811912345"
+                          {...field}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (validateNumber(value) && value.length <= 9) {
+                              field.onChange(e);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (
+                              ['e', 'E', '+', '-', '.', 'ArrowUp', 'ArrowDown']
+                                .includes(e.key)
+                            ) {
+                              e.preventDefault();
+                            }
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

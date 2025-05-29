@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { safeJsonFetch } from "@/lib/config";
 import { User } from "@/types/user";
 
-function setAuthCookie(response: NextResponse, token: string) {
+function setAuthCookie(response: NextResponse, token: string, maxAge?: number) {
   response.cookies.set({
     name: "auth_token",
     value: token,
@@ -10,7 +10,7 @@ function setAuthCookie(response: NextResponse, token: string) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: 60 * 60 * 24 * (maxAge || 1),
   });
 }
 
@@ -44,7 +44,12 @@ export async function POST(request: NextRequest) {
     const nextResponse = NextResponse.json(response, { status: 200 });
 
     if (response.user && response.user.token) {
-      setAuthCookie(nextResponse, response.user.token);
+      if (response.user.role !== 'user') {
+        setAuthCookie(nextResponse, response.user.token);
+      }
+      else {
+        setAuthCookie(nextResponse, response.user.token, 7);
+      }
     }
 
     return nextResponse;
