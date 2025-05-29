@@ -174,7 +174,7 @@ export default function AddTimeSlotPage() {
             capacity: slot.capacity,
             is_custom: slot.is_custom
           })),
-        createdAt: new Date().toISOString()
+        created_at: new Date().toISOString()
       };
 
       const response = await fetch('/api/timeslots/new', {

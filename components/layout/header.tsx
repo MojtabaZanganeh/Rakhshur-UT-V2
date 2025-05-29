@@ -99,9 +99,9 @@ export function Header({ variant = 'user' }: HeaderProps) {
                       {user?.first_name} {user?.last_name}
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {/* <DropdownMenuItem asChild>
-                      <Link href="/profile">پروفایل</Link>
-                    </DropdownMenuItem> */}
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/profile">پروفایل</Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleLogout}>
                       <LogOut className="ml-2 h-4 w-4" />
                       <span>خروج</span>

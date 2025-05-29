@@ -57,7 +57,7 @@ export default function RegisterPage() {
     try {
       setIsSubmitting(true);
 
-      const response = await sendCode(values.phone);
+      const response = await sendCode(values.phone, 'register');
 
       if (response) {
         setUserData(values);
@@ -181,12 +181,12 @@ export default function RegisterPage() {
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
-                        <FormControl>
+                        <FormControl dir='rtl'>
                           <SelectTrigger>
                             <SelectValue placeholder="انتخاب خوابگاه" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent dir='rtl'>
                           <SelectItem value="dormitory-1">خوابگاه 1</SelectItem>
                           <SelectItem value="dormitory-2">خوابگاه 2</SelectItem>
                         </SelectContent>

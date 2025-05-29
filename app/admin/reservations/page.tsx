@@ -32,38 +32,11 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, Calendar, Clock, User, BookmarkX, BookmarkCheck, AlarmClockCheck, WashingMachine } from 'lucide-react';
+import { Search } from 'lucide-react';
 import toast from 'react-hot-toast';
-import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-
-const statusStyles = {
-  pending: {
-    color: 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100',
-    icon: <Clock className="h-4 w-4 mr-1" />,
-    label: 'در انتظار'
-  },
-  washing: {
-    color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100',
-    icon: <WashingMachine className="h-4 w-4 mr-1" />,
-    label: 'در حال شستشو'
-  },
-  ready: {
-    color: 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100',
-    icon: <AlarmClockCheck className="h-4 w-4 mr-1" />,
-    label: 'آماده تحویل'
-  },
-  finished: {
-    color: 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100',
-    icon: <BookmarkCheck className="h-4 w-4 mr-1" />,
-    label: 'تحویل داده شده'
-  },
-  cancelled: {
-    color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-    icon: <BookmarkX className="h-4 w-4 mr-1" />,
-    label: 'لغو شده'
-  },
-};
+import { statusStyles } from '@/components/status-style';
+import { formatDate } from '@/lib/format-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -221,15 +194,6 @@ export default function AdminReservationsPage() {
     router.push(`/admin/reservations?${params.toString()}`);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('fa-IR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    }).format(date);
-  };
-
   const renderPagination = () => {
     if (totalPages <= 1) return null;
 
@@ -330,6 +294,7 @@ export default function AdminReservationsPage() {
                 <Select
                   value={statusFilter}
                   onValueChange={(value) => handleFilterChange('status', value)}
+                  dir='rtl'
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="وضعیت" />
@@ -338,7 +303,7 @@ export default function AdminReservationsPage() {
                     <SelectItem value="all">همه وضعیت‌ها</SelectItem>
                     <SelectItem value="pending">در انتظار</SelectItem>
                     <SelectItem value="washing">در حال شستشو</SelectItem>
-                    <SelectItem value="ready">آماده</SelectItem>
+                    <SelectItem value="ready">آماده تحویل</SelectItem>
                     <SelectItem value="finished">تحویل داده شده</SelectItem>
                     <SelectItem value="cancelled">لغو شده</SelectItem>
                   </SelectContent>
@@ -350,6 +315,7 @@ export default function AdminReservationsPage() {
                   <Select
                     value={dormitoryFilter}
                     onValueChange={(value) => handleFilterChange('dormitory', value)}
+                    dir='rtl'
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="خوابگاه" />
@@ -372,7 +338,7 @@ export default function AdminReservationsPage() {
           ) : (
             <>
               <div className="rounded-md border">
-                {/* نمایش دسکتاپ */}
+  
                 <div className="hidden md:block">
                   <Table>
                     <TableHeader>
@@ -394,7 +360,7 @@ export default function AdminReservationsPage() {
                             <TableCell className="text-center">
                               {reservation.user_first_name} {reservation.user_last_name}
                             </TableCell>
-                            <TableCell className="text-center">{formatDate(reservation.timeSlots.date || '')}</TableCell>
+                            <TableCell className="text-center">{reservation.timeSlots.date && formatDate(reservation.timeSlots.date, { year: 'numeric', month: 'long', day: 'numeric' })}</TableCell>
                             <TableCell className="text-center">
                               {reservation.timeSlots.start_time.toString()} - {reservation.timeSlots.end_time.toString()}
                             </TableCell>
@@ -415,6 +381,7 @@ export default function AdminReservationsPage() {
                                 <Select
                                   value={reservation.status}
                                   onValueChange={(value) => handleStatusChange(reservation.id, value)}
+                                  dir='rtl'
                                 >
                                   <SelectTrigger className="w-[140px] mx-auto">
                                     <SelectValue placeholder="تغییر وضعیت" />
@@ -422,7 +389,7 @@ export default function AdminReservationsPage() {
                                   <SelectContent>
                                     <SelectItem value="pending">در انتظار</SelectItem>
                                     <SelectItem value="washing">در حال شستشو</SelectItem>
-                                    <SelectItem value="ready">آماده</SelectItem>
+                                    <SelectItem value="ready">آماده تحویل</SelectItem>
                                     <SelectItem value="finished">تحویل داده شده</SelectItem>
                                     <SelectItem value="cancelled">لغو شده</SelectItem>
                                   </SelectContent>
@@ -442,7 +409,6 @@ export default function AdminReservationsPage() {
                   </Table>
                 </div>
 
-                {/* نمایش موبایل */}
                 <div className="md:hidden space-y-3 p-3">
                   {reservations.length > 0 ? (
                     reservations.map((reservation) => (
@@ -460,7 +426,7 @@ export default function AdminReservationsPage() {
 
                           <div className="flex justify-between">
                             <span className="font-medium">تاریخ:</span>
-                            <span>{formatDate(reservation.timeSlots.date || '')}</span>
+                            <span>{reservation.timeSlots.date && formatDate(reservation.timeSlots.date, { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                           </div>
 
                           <div className="flex justify-between">
@@ -491,6 +457,7 @@ export default function AdminReservationsPage() {
                             <Select
                               value={reservation.status}
                               onValueChange={(value) => handleStatusChange(reservation.id, value)}
+                              dir='rtl'
                             >
                               <SelectTrigger className="w-full">
                                 <SelectValue placeholder="تغییر وضعیت" />
@@ -498,7 +465,7 @@ export default function AdminReservationsPage() {
                               <SelectContent>
                                 <SelectItem value="pending">در انتظار</SelectItem>
                                 <SelectItem value="washing">در حال شستشو</SelectItem>
-                                <SelectItem value="ready">آماده</SelectItem>
+                                <SelectItem value="ready">آماده تحویل</SelectItem>
                                 <SelectItem value="finished">تحویل داده شده</SelectItem>
                                 <SelectItem value="cancelled">لغو شده</SelectItem>
                               </SelectContent>

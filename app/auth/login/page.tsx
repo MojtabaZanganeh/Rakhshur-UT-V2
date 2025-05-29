@@ -48,7 +48,7 @@ export default function LoginPage() {
     try {
       setIsSubmitting(true);
 
-      const response = await sendCode(values.phone);
+      const response = await sendCode(values.phone, 'login');
 
       if (response) {
         setPhoneNumber(values.phone);

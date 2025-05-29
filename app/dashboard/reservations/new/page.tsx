@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import JalaliDatePicker from '@/components/ui/date-picker';
 import DateObject from "react-date-object";
 import persian from "react-date-object/calendars/persian";
+import { formatDate } from '@/lib/format-data';
 
 type TimeSlot = {
     id: string;
@@ -27,15 +28,6 @@ type DayData = {
 
 type TimeSlotsData = {
     [date: string]: DayData;
-};
-
-const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('fa-IR', {
-        // year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    }).format(date);
 };
 
 const jalaliToGregorian = (jalaliDate: string): Date | null => {
@@ -69,6 +61,8 @@ function gregorianToJalali(date: Date): string | null {
         return null;
     }
 }
+
+export const dynamic = 'force-dynamic';
 
 export default function NewReservationPage() {
     const router = useRouter();
@@ -246,7 +240,7 @@ export default function NewReservationPage() {
 
             if (response.status === 200 && data.success) {
                 toast.success('نوبت با موفقیت رزرو شد');
-                router.push('/dashboard');
+                router.push('/dashboard/reservations');
             } else {
                 throw new Error(data.message || 'خطا در رزرو نوبت');
             }
@@ -291,7 +285,7 @@ export default function NewReservationPage() {
                         <CardHeader className="bg-gray-50 dark:bg-gray-800 p-4" dir="rtl">
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Calendar className="h-5 w-5 text-primary" />
-                                <span>{timeSlots[date].day} - {formatDate(date)}</span>
+                                <span>{timeSlots[date].day} - {formatDate(date, { month: 'long', day: 'numeric' })}</span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-4">

@@ -5,41 +5,17 @@ import { redirect } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, CheckCircle2, WashingMachine, AlarmClockCheck, BookmarkCheck, BookmarkX } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, BookmarkCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth-provider';
 import { fetchUserReservations } from '@/lib/api';
 import { Reservation } from '@/types/reservation';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import toast from 'react-hot-toast';
+import { formatDate } from '@/lib/format-data';
+import { statusStyles } from '@/components/status-style';
 
-const statusStyles = {
-  pending: {
-    color: 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100',
-    icon: <Clock className="h-4 w-4 mr-1" />,
-    label: 'در انتظار'
-  },
-  washing: {
-    color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100',
-    icon: <WashingMachine className="h-4 w-4 mr-1" />,
-    label: 'در حال شستشو'
-  },
-  ready: {
-    color: 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100',
-    icon: <AlarmClockCheck className="h-4 w-4 mr-1" />,
-    label: 'آماده تحویل'
-  },
-  finished: {
-    color: 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100',
-    icon: <BookmarkCheck className="h-4 w-4 mr-1" />,
-    label: 'تحویل داده شده'
-  },
-  cancelled: {
-    color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-    icon: <BookmarkX className="h-4 w-4 mr-1" />,
-    label: 'لغو شده'
-  },
-};
+export const dynamic = 'force-dynamic';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -61,7 +37,7 @@ export default function Dashboard() {
         const data = await response.json();
 
         if (response.status === 200 && data.success) {
-            setReservations(data.recent.list);
+          setReservations(data.recent.list);
         }
         else {
           throw new Error(data.message);
@@ -77,17 +53,6 @@ export default function Dashboard() {
 
     loadReservations();
   }, []);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('fa-IR', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-    }).format(date);
-  };
 
   return (
     <div className="space-y-6">
@@ -106,7 +71,7 @@ export default function Dashboard() {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">کل رزروها</CardTitle>
@@ -150,6 +115,21 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">تحویل گرفته شده</CardTitle>
+            <BookmarkCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">
+                {reservations.filter(r => r.status === 'finished').length}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div>
@@ -164,17 +144,16 @@ export default function Dashboard() {
           <div className="space-y-4">
             {reservations.slice(0, 5).map((reservation) => {
               const status = statusStyles[reservation.status];
-              console.log(status)
               return (
                 <Card key={reservation.id}>
                   <CardContent className="p-4">
                     <div className="flex flex-col sm:flex-row justify-between gap-4">
                       <div>
-                        <div className="font-medium">
-                          رزرو #{reservation.id}
+                        <div className="font-medium text-start" dir='rtl'>
+                          رزرو {reservation.timeSlots.date && formatDate(reservation.timeSlots.date, { weekday: "short", month: "short", day: "numeric", })}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          بازه زمانی {reservation.timeSlots.start_time.toString() + ' - ' + reservation.timeSlots.end_time.toString()} • ایجاد شده در {formatDate(reservation.createdAt)}
+                          بازه زمانی {reservation.timeSlots.start_time.toString() + ' - ' + reservation.timeSlots.end_time.toString()} • آخرین تغییر {formatDate(reservation.updated_at, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "numeric" })}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -185,7 +164,7 @@ export default function Dashboard() {
                             {status.icon}
                           </div>
                         </Badge>
-                        <Link href={`/reservations/${reservation.id}`}>
+                        <Link href={`/dashboard/reservations`}>
                           <Button variant="ghost" size="sm">مشاهده جزئیات</Button>
                         </Link>
                       </div>
@@ -196,7 +175,7 @@ export default function Dashboard() {
             })}
             {reservations.length > 5 && (
               <div className="text-center mt-4">
-                <Link href="/reservations">
+                <Link href="/dashboard/reservations">
                   <Button variant="outline">مشاهده همه رزروها</Button>
                 </Link>
               </div>

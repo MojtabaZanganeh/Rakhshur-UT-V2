@@ -14,6 +14,7 @@ import { TimePicker } from '@/components/ui/time-picker';
 import JalaliDatePicker from '@/components/ui/date-picker';
 import DateObject from "react-date-object";
 import persian from "react-date-object/calendars/persian";
+import { formatDate } from '@/lib/format-data';
 
 type TimeSlot = {
     id: string;
@@ -37,15 +38,6 @@ type EditingSlot = {
     index: number;
     start_time: Date;
     end_time: Date;
-};
-
-const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('fa-IR', {
-        // year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    }).format(date);
 };
 
 const parseTimeString = (timeString: string): Date => {
@@ -90,6 +82,8 @@ function gregorianToJalali(date: Date): string | null {
         return null;
     }
 }
+
+export const dynamic = 'force-dynamic';
 
 export default function AdminTimeSlotsPage() {
     const [timeSlots, setTimeSlots] = useState<TimeSlotsData | null>(null);
@@ -207,20 +201,20 @@ export default function AdminTimeSlotsPage() {
         const activeDays = calculateActiveDaysOfJalaliYear();
 
         return (
-            <div className="flex flex-row justify-end items-stretch gap-3 mb-6" dir="rtl">
+            <div className="grid grid-flow-row-dense md:grid-flow-col-dense place-content-end items-stretch gap-3 mb-6" dir="rtl">
                 <div>
                     <JalaliDatePicker
                         selected={selectedDate}
                         onChange={handleDateSelect}
                         mapDays={activeDays}
-                        className='pr-10 p-3 border rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all'
+                        className='w-full pr-10 p-3 border rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all'
                     />
                 </div>
 
                 <Button
                     variant={activeTab === 'all' ? 'secondary' : 'outline'}
                     onClick={() => setActiveTab('all')}
-                    className={`whitespace-nowrap h-auto py-2 px-4 rounded-lg transition-all ${activeTab === 'all' ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                    className={`whitespace-nowrap h-[50px] py-2 px-4 rounded-lg transition-all ${activeTab === 'all' ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                         }`}
                 >
                     <CalendarDays className="w-5 h-5 ml-2" />
@@ -364,7 +358,7 @@ export default function AdminTimeSlotsPage() {
                         <CardHeader className="bg-gray-50 dark:bg-gray-800 p-4" dir="rtl">
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Calendar className="h-5 w-5 text-primary" />
-                                <span>{(timeSlots[date].day)} - {formatDate(date)}</span>
+                                <span>{(timeSlots[date].day)} - {formatDate(date, { month: 'long', day: 'numeric' })}</span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">

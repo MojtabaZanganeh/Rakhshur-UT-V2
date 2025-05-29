@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Users, PlusCircle, Building, Clock, WashingMachine, AlarmClockCheck, BookmarkX, BookmarkCheck } from 'lucide-react';
+import { Calendar, Users, PlusCircle, Building } from 'lucide-react';
 import { useAuth } from '@/lib/auth-provider';
 import { fetchApi } from '@/lib/api';
 import { Reservation } from '@/types/reservation';
@@ -25,6 +25,8 @@ import {
 } from 'recharts';
 import toast from 'react-hot-toast';
 import { Badge } from '@/components/ui/badge';
+import { statusStyles } from '@/components/status-style';
+import { formatDate } from '@/lib/format-data';
 
 type AdminStats = {
   totalReservations: number;
@@ -46,37 +48,9 @@ type AdminStats = {
   }[];
 };
 
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))','hsl(var(--chart-5))'];
+const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 const DORMITORY_COLORS = ['hsl(var(--chart-6))', 'hsl(var(--chart-7))'];
-
-const statusStyles = {
-  pending: {
-    color: 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100',
-    icon: <Clock className="h-4 w-4 mr-1" />,
-    label: 'در انتظار'
-  },
-  washing: {
-    color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100',
-    icon: <WashingMachine className="h-4 w-4 mr-1" />,
-    label: 'در حال شستشو'
-  },
-  ready: {
-    color: 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100',
-    icon: <AlarmClockCheck className="h-4 w-4 mr-1" />,
-    label: 'آماده تحویل'
-  },
-  finished: {
-    color: 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100',
-    icon: <BookmarkCheck className="h-4 w-4 mr-1" />,
-    label: 'تحویل داده شده'
-  },
-  cancelled: {
-    color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-    icon: <BookmarkX className="h-4 w-4 mr-1" />,
-    label: 'لغو شده'
-  },
-};
 
 export const dynamic = 'force-dynamic';
 
@@ -155,18 +129,10 @@ export default function AdminDashboard() {
     }, 1000);
   }, [isDormitoryAdmin, adminDormitory]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('fa-IR', {
-      month: 'short',
-      day: 'numeric',
-    }).format(date);
-  };
-
   const statusData = stats ? [
     { name: 'در انتظار', value: stats.statusCounts.pending },
     { name: 'در حال شستشو', value: stats.statusCounts.washing },
-    { name: 'آماده', value: stats.statusCounts.ready },
+    { name: 'آماده تحویل', value: stats.statusCounts.ready },
     { name: 'تحویل داده شده', value: stats.statusCounts.finished },
     { name: 'لغو شده', value: stats.statusCounts.cancelled },
   ] : [];
@@ -362,7 +328,7 @@ export default function AdminDashboard() {
                             {reservation.user_first_name} {reservation.user_last_name}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {formatDate(reservation.timeSlots.date || '')} - {reservation.timeSlots.start_time.toString()} • {reservation.timeSlots.dormitory === 'dormitory-1' ? 'خوابگاه ۱' : 'خوابگاه ۲'}
+                            {reservation.timeSlots.date && formatDate(reservation.timeSlots.date, { month: "short", day: "numeric" })} - {reservation.timeSlots.start_time.toString()} • {reservation.timeSlots.dormitory === 'dormitory-1' ? 'خوابگاه ۱' : 'خوابگاه ۲'}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">

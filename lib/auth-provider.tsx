@@ -10,7 +10,7 @@ type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  sendCode: (phone: string) => Promise<boolean>;
+  sendCode: (phone: string, page: string) => Promise<boolean>;
   checkCode: (phone: string, code: string) => Promise<boolean>;
   login: (phone: string, code: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -32,7 +32,12 @@ export function AuthProvider({ children, page, }: { children: React.ReactNode; p
         const userData = await verifyToken();
         if (userData) {
           if (page == 'auth') {
-            router.push('/dashboard');
+            if (userData.role === 'user') {
+              router.push('/dashboard');
+            }
+            else {
+              router.push('/admin');
+            }
           }
           setUser(userData);
         }
@@ -51,7 +56,7 @@ export function AuthProvider({ children, page, }: { children: React.ReactNode; p
     checkAuth();
   }, []);
 
-  const sendCode = async (phone: string): Promise<boolean> => {
+  const sendCode = async (phone: string, page: string): Promise<boolean> => {
     try {
       setIsLoading(true);
 
@@ -60,7 +65,7 @@ export function AuthProvider({ children, page, }: { children: React.ReactNode; p
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone, page }),
       });
 
       const data = await response.json();

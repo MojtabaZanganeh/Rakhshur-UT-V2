@@ -4,13 +4,13 @@ import { safeJsonFetch } from "@/lib/config";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phone } = body;
+    const { phone, page } = body;
     
     if (!phone) {
       return NextResponse.json({ message: "شماره تلفن الزامی است" }, { status: 400 });
     }
     
-    const response = await safeJsonFetch<any>("/auth/send-code", "POST", { phone, send: false });
+    const response = await safeJsonFetch<any>("/auth/send-code", "POST", { phone, page, send: false });
     
     if (!response || response.message == '') {
       return NextResponse.json({ message: "خطا در ارسال کد تأیید" }, { status: 500 });

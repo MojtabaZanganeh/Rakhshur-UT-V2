@@ -25,40 +25,14 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, Calendar, Clock, WashingMachine, AlarmClockCheck, BookmarkCheck, BookmarkX } from 'lucide-react';
+import { Search, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AlertDialogTrigger } from '@radix-ui/react-alert-dialog';
-
-const statusStyles = {
-  pending: {
-    color: 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100',
-    icon: <Clock className="h-4 w-4 mr-1" />,
-    label: 'در انتظار'
-  },
-  washing: {
-    color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100',
-    icon: <WashingMachine className="h-4 w-4 mr-1" />,
-    label: 'در حال شستشو'
-  },
-  ready: {
-    color: 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100',
-    icon: <AlarmClockCheck className="h-4 w-4 mr-1" />,
-    label: 'آماده تحویل'
-  },
-  finished: {
-    color: 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100',
-    icon: <BookmarkCheck className="h-4 w-4 mr-1" />,
-    label: 'تحویل داده شده'
-  },
-  cancelled: {
-    color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-    icon: <BookmarkX className="h-4 w-4 mr-1" />,
-    label: 'لغو شده'
-  },
-};
+import { statusStyles } from '@/components/status-style';
+import { formatDate, timeAgo } from '@/lib/format-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -185,15 +159,6 @@ export default function UserReservationsPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('fa-IR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    }).format(date);
-  };
-
   const renderPagination = () => {
     if (totalPages <= 1) return null;
 
@@ -270,7 +235,7 @@ export default function UserReservationsPage() {
             مشاهده و پیگیری تمامی رزروهای شما
           </p>
         </div>
-        <Link href="/reservations/new">
+        <Link href="/dashboard/reservations/new">
           <Button>
             <Calendar className="ml-2 h-4 w-4" />
             رزرو جدید
@@ -305,7 +270,7 @@ export default function UserReservationsPage() {
                   <option value="all">همه وضعیت‌ها</option>
                   <option value="pending">در انتظار</option>
                   <option value="washing">در حال شستشو</option>
-                  <option value="ready">آماده</option>
+                  <option value="ready">آماده تحویل</option>
                   <option value="finished">تحویل داده شده</option>
                   <option value="cancelled">لغو شده</option>
                 </select>
@@ -320,7 +285,7 @@ export default function UserReservationsPage() {
           ) : (
             <>
               <div className="overflow-x-auto">
-                {/* نمایش دسکتاپ */}
+
                 <Table className="hidden md:table">
                   <TableHeader>
                     <TableRow className="text-center">
@@ -329,6 +294,7 @@ export default function UserReservationsPage() {
                       <TableHead className="text-center">ساعت</TableHead>
                       <TableHead className="text-center">خوابگاه</TableHead>
                       <TableHead className="text-center">وضعیت</TableHead>
+                      <TableHead className="text-center">آخرین تغییر</TableHead>
                       <TableHead className="text-center">عملیات</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -337,7 +303,7 @@ export default function UserReservationsPage() {
                       reservations.map((reservation) => (
                         <TableRow key={reservation.id} className="text-center">
                           <TableCell className="text-center">#{reservation.id}</TableCell>
-                          <TableCell className="text-center">{formatDate(reservation.timeSlots.date || '')}</TableCell>
+                          <TableCell className="text-center">{reservation.timeSlots.date && formatDate(reservation.timeSlots.date, { year: 'numeric', month: 'long', day: 'numeric' })}</TableCell>
                           <TableCell className="text-center">
                             {reservation.timeSlots.start_time.toString()} - {reservation.timeSlots.end_time.toString()}
                           </TableCell>
@@ -352,6 +318,9 @@ export default function UserReservationsPage() {
                                 {statusStyles[reservation.status].icon}
                               </div>
                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {timeAgo(reservation.updated_at)}
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-2">
@@ -393,7 +362,6 @@ export default function UserReservationsPage() {
                   </TableBody>
                 </Table>
 
-                {/* نمایش موبایل */}
                 <div className="md:hidden space-y-4 p-2">
                   {reservations.length > 0 ? (
                     reservations.map((reservation) => (
@@ -405,7 +373,7 @@ export default function UserReservationsPage() {
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">تاریخ</p>
-                            <p className="font-medium">{formatDate(reservation.timeSlots.date || '')}</p>
+                            <p className="font-medium">{reservation.timeSlots.date && formatDate(reservation.timeSlots.date, { year: 'numeric', month: 'long', day: 'numeric', })}</p>
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">ساعت</p>
@@ -428,6 +396,12 @@ export default function UserReservationsPage() {
                                 {statusStyles[reservation.status].icon}
                               </div>
                             </Badge>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">آخرین تغییر</p>
+                            <p>
+                              {timeAgo(reservation.updated_at)}
+                            </p>
                           </div>
                           {reservation.status === 'pending' && (
                             <div className="col-span-2 pt-2">

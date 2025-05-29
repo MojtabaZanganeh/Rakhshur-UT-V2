@@ -27,8 +27,8 @@ export type Reservation = {
   user_last_name: string;
   timeSlots: TimeSlot;
   status: ReservationStatus;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
   paymentStatus: "pending" | "completed";
 };
 
