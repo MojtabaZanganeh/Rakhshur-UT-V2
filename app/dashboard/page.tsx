@@ -12,7 +12,7 @@ import { Reservation } from '@/types/reservation';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import toast from 'react-hot-toast';
-import { formatDate } from '@/lib/format-data';
+import { formatDate } from '@/lib/format-date';
 import { statusStyles } from '@/components/status-style';
 
 export const dynamic = 'force-dynamic';

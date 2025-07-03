@@ -36,7 +36,7 @@ import { Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { statusStyles } from '@/components/status-style';
-import { formatDate } from '@/lib/format-data';
+import { formatDate } from '@/lib/format-date';
 
 export const dynamic = 'force-dynamic';
 

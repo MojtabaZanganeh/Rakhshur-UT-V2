@@ -32,7 +32,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AlertDialogTrigger } from '@radix-ui/react-alert-dialog';
 import { statusStyles } from '@/components/status-style';
-import { formatDate, timeAgo } from '@/lib/format-data';
+import { formatDate, timeAgo } from '@/lib/format-date';
 
 export const dynamic = 'force-dynamic';
 

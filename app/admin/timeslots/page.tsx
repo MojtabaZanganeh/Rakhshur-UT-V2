@@ -14,7 +14,7 @@ import { TimePicker } from '@/components/ui/time-picker';
 import JalaliDatePicker from '@/components/ui/date-picker';
 import DateObject from "react-date-object";
 import persian from "react-date-object/calendars/persian";
-import { formatDate } from '@/lib/format-data';
+import { formatDate } from '@/lib/format-date';
 
 type TimeSlot = {
     id: string;

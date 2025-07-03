@@ -26,7 +26,7 @@ import {
 import toast from 'react-hot-toast';
 import { Badge } from '@/components/ui/badge';
 import { statusStyles } from '@/components/status-style';
-import { formatDate } from '@/lib/format-data';
+import { formatDate } from '@/lib/format-date';
 
 type AdminStats = {
   totalReservations: number;

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { CalendarClock, ClipboardList, CreditCard, WashingMachine } from 'lucide-react';
-import { formatDate } from '@/lib/format-data';
+import { formatDate } from '@/lib/format-date';
 
 export default function Home() {
   return (
